@@ -1,0 +1,32 @@
+{
+  "model_name": "customer_churn_logistic_regression",
+  "model_version": "1.0.0",
+  "trained_at_utc": "2026-08-21T13:14:54.956977+00:00",
+  "training_rows": 7043,
+  "target": "Churn",
+  "positive_class": "Yes",
+  "operating_threshold": 0.8,
+  "numeric_features": [
+    "SeniorCitizen",
+    "tenure",
+    "MonthlyCharges",
+    "TotalCharges"
+  ],
+  "categorical_features": [
+    "gender",
+    "Partner",
+    "Dependents",
+    "PhoneService",
+    "MultipleLines",
+    "InternetService",
+    "OnlineSecurity",
+    "OnlineBackup",
+    "DeviceProtection",
+    "TechSupport",
+    "StreamingTV",
+    "StreamingMovies",
+    "Contract",
+    "PaperlessBilling",
+    "PaymentMethod"
+  ]
+}
