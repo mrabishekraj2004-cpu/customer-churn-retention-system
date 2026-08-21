@@ -41,7 +41,7 @@ def calculate_business_metrics(
 ) -> dict[str, float]:
     predictions = (probabilities >= threshold).astype(int)
 
-    tn, fp, fn, tp = confusion_matrix(
+    _, fp, fn, tp = confusion_matrix(
         y_true,
         predictions,
     ).ravel()
