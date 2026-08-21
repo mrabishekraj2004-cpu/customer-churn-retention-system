@@ -55,3 +55,11 @@ models/*.joblib
 *.db
 *.sqlite
 *.sqlite3
+
+# Local datasets
+data/raw/*
+data/processed/*
+
+# Keep directory placeholders in Git
+!data/raw/.gitkeep
+!data/processed/.gitkeep
