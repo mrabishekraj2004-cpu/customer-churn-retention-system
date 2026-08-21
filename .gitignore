@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment / secrets
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Type checking / linting
+.mypy_cache/
+.ruff_cache/
+
+# Build
+build/
+dist/
+*.egg-info/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Frontend
+node_modules/
+frontend/dist/
+frontend/build/
+
+# ML artifacts
+models/*.pkl
+models/*.joblib
+
+# Local database
+*.db
+*.sqlite
+*.sqlite3
