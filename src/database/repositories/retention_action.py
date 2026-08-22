@@ -30,6 +30,12 @@ class RetentionActionRepository:
 
         return action
 
+    def get_by_id(
+        self,
+        action_id: int,
+    ) -> RetentionAction | None:
+        return self.db.get(RetentionAction, action_id)
+
     def get_by_prediction(
         self,
         prediction_id: int,
