@@ -85,6 +85,19 @@ class CustomerFeatures(BaseModel):
     ]
 
 
+class RetentionRecommendationResponse(BaseModel):
+    action_id: int | None
+    risk_factors: list[str]
+    action_type: str
+    suggested_offer: str
+    priority: Literal[
+        "low",
+        "medium",
+        "high",
+    ]
+    reason: str
+
+
 class PredictionResponse(BaseModel):
     prediction_id: int
     customer_id: str
@@ -98,3 +111,4 @@ class PredictionResponse(BaseModel):
     retention_action_required: bool
     operating_threshold: float
     model_version: str
+    retention_recommendation: RetentionRecommendationResponse
