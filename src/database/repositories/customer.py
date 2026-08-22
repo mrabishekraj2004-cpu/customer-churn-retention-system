@@ -10,13 +10,35 @@ class CustomerRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
 
+    def get_by_id(
+        self,
+        customer_db_id: int,
+    ) -> Customer | None:
+        return self.db.get(Customer, customer_db_id)
+
     def get_by_customer_id(
         self,
         customer_id: str,
     ) -> Customer | None:
-        statement = select(Customer).where(Customer.customer_id == customer_id)
+        statement = select(Customer).where(
+            Customer.customer_id == customer_id
+        )
 
         return self.db.scalar(statement)
+
+    def get_all(
+        self,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[Customer]:
+        statement = (
+            select(Customer)
+            .order_by(Customer.created_at.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+
+        return list(self.db.scalars(statement).all())
 
     def create(
         self,
