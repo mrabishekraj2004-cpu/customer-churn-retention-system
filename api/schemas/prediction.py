@@ -6,6 +6,11 @@ YesNo = Literal["Yes", "No"]
 
 
 class CustomerFeatures(BaseModel):
+    customer_id: str = Field(
+        min_length=1,
+        max_length=50,
+    )
+
     SeniorCitizen: Literal[0, 1]
     tenure: int = Field(ge=0, le=100)
     MonthlyCharges: float = Field(ge=0)
@@ -81,6 +86,8 @@ class CustomerFeatures(BaseModel):
 
 
 class PredictionResponse(BaseModel):
+    prediction_id: int
+    customer_id: str
     churn_probability: float
     risk_level: Literal[
         "low",
