@@ -63,3 +63,23 @@ class CustomerListResponse(BaseModel):
     count: int
     limit: int
     offset: int
+
+
+class HighRiskCustomerResponse(BaseModel):
+    id: int
+    customer_id: str
+    tenure: int
+    contract: str
+    internet_service: str
+    monthly_charges: float
+    churn_probability: float
+    risk_level: str
+    prediction_id: int
+    predicted_at: datetime
+
+
+class HighRiskCustomerListResponse(BaseModel):
+    customers: list[HighRiskCustomerResponse]
+    count: int
+    limit: int
+    offset: int

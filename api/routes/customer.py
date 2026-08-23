@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from api.schemas.customer import (
     CustomerDetailResponse,
     CustomerListResponse,
+    HighRiskCustomerListResponse,
 )
 from src.database.repositories import (
     CustomerRepository,
@@ -51,6 +52,30 @@ def get_customers(
     ] = 0,
 ) -> CustomerListResponse:
     return service.get_customers(
+        limit=limit,
+        offset=offset,
+    )
+
+
+@router.get(
+    "/high-risk",
+    response_model=HighRiskCustomerListResponse,
+)
+def get_high_risk_customers(
+    service: Annotated[
+        CustomerService,
+        Depends(get_customer_service),
+    ],
+    limit: Annotated[
+        int,
+        Query(ge=1, le=500),
+    ] = 100,
+    offset: Annotated[
+        int,
+        Query(ge=0),
+    ] = 0,
+) -> HighRiskCustomerListResponse:
+    return service.get_high_risk_customers(
         limit=limit,
         offset=offset,
     )

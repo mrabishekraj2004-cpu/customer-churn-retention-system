@@ -2,6 +2,8 @@ from api.schemas.customer import (
     CustomerDetailResponse,
     CustomerListResponse,
     CustomerSummaryResponse,
+    HighRiskCustomerListResponse,
+    HighRiskCustomerResponse,
     LatestPredictionResponse,
 )
 from src.database.models import Customer, Prediction
@@ -48,6 +50,62 @@ class CustomerService:
             offset=offset,
         )
 
+    def get_high_risk_customers(
+        self,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> HighRiskCustomerListResponse:
+        customers = self.customer_repository.get_all(
+            limit=500,
+            offset=0,
+        )
+
+        high_risk_customers: list[HighRiskCustomerResponse] = []
+
+        for customer in customers:
+            latest_prediction = self._get_latest_prediction(
+                customer.id
+            )
+
+            if latest_prediction is None:
+                continue
+
+            if not latest_prediction.retention_action_required:
+                continue
+
+            high_risk_customers.append(
+                HighRiskCustomerResponse(
+                    id=customer.id,
+                    customer_id=customer.customer_id,
+                    tenure=customer.tenure,
+                    contract=customer.contract,
+                    internet_service=customer.internet_service,
+                    monthly_charges=customer.monthly_charges,
+                    churn_probability=(
+                        latest_prediction.churn_probability
+                    ),
+                    risk_level=latest_prediction.risk_level,
+                    prediction_id=latest_prediction.id,
+                    predicted_at=latest_prediction.created_at,
+                )
+            )
+
+        high_risk_customers.sort(
+            key=lambda customer: customer.churn_probability,
+            reverse=True,
+        )
+
+        paginated_customers = high_risk_customers[
+            offset : offset + limit
+        ]
+
+        return HighRiskCustomerListResponse(
+            customers=paginated_customers,
+            count=len(paginated_customers),
+            limit=limit,
+            offset=offset,
+        )
+
     def get_customer(
         self,
         customer_id: str,
@@ -61,7 +119,9 @@ class CustomerService:
                 f"Customer not found: {customer_id}"
             )
 
-        latest_prediction = self._get_latest_prediction(customer.id)
+        latest_prediction = self._get_latest_prediction(
+            customer.id
+        )
 
         return CustomerDetailResponse(
             id=customer.id,
@@ -96,7 +156,9 @@ class CustomerService:
         self,
         customer: Customer,
     ) -> CustomerSummaryResponse:
-        latest_prediction = self._get_latest_prediction(customer.id)
+        latest_prediction = self._get_latest_prediction(
+            customer.id
+        )
 
         return CustomerSummaryResponse(
             id=customer.id,
@@ -115,8 +177,10 @@ class CustomerService:
         self,
         customer_db_id: int,
     ) -> Prediction | None:
-        predictions = self.prediction_repository.get_customer_history(
-            customer_db_id
+        predictions = (
+            self.prediction_repository.get_customer_history(
+                customer_db_id
+            )
         )
 
         if not predictions:
