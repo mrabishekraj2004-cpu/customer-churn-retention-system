@@ -1,11 +1,13 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from api.schemas.retention_action import (
+    RetentionActionListResponse,
     RetentionActionResponse,
     RetentionActionStatusUpdate,
+    RetentionStatus,
 )
 from src.database.repositories import RetentionActionRepository
 from src.database.session import get_db
@@ -27,6 +29,50 @@ def get_retention_action_service(
     repository = RetentionActionRepository(db)
 
     return RetentionActionService(repository)
+
+
+@router.get(
+    "",
+    response_model=RetentionActionListResponse,
+)
+def get_retention_actions(
+    service: Annotated[
+        RetentionActionService,
+        Depends(get_retention_action_service),
+    ],
+    limit: Annotated[
+        int,
+        Query(ge=1, le=500),
+    ] = 100,
+    offset: Annotated[
+        int,
+        Query(ge=0),
+    ] = 0,
+    status_filter: Annotated[
+        RetentionStatus | None,
+        Query(alias="status"),
+    ] = None,
+) -> RetentionActionListResponse:
+    actions = service.get_actions(
+        limit=limit,
+        offset=offset,
+        status=status_filter,
+    )
+
+    action_responses = [
+        RetentionActionResponse.model_validate(
+            action,
+            from_attributes=True,
+        )
+        for action in actions
+    ]
+
+    return RetentionActionListResponse(
+        actions=action_responses,
+        count=len(action_responses),
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.get(

@@ -19,6 +19,18 @@ class RetentionActionService:
     ) -> None:
         self.repository = repository
 
+    def get_actions(
+        self,
+        limit: int = 100,
+        offset: int = 0,
+        status: str | None = None,
+    ) -> list[RetentionAction]:
+        return self.repository.get_all(
+            limit=limit,
+            offset=offset,
+            status=status,
+        )
+
     def get_action(
         self,
         action_id: int,

@@ -28,6 +28,13 @@ class RetentionActionResponse(BaseModel):
     completed_at: datetime | None
 
 
+class RetentionActionListResponse(BaseModel):
+    actions: list[RetentionActionResponse]
+    count: int
+    limit: int
+    offset: int
+
+
 class RetentionActionStatusUpdate(BaseModel):
     status: RetentionStatus
     outcome: RetentionOutcome | None = None

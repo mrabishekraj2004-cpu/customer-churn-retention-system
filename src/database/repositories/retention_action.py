@@ -36,13 +36,34 @@ class RetentionActionRepository:
     ) -> RetentionAction | None:
         return self.db.get(RetentionAction, action_id)
 
+    def get_all(
+        self,
+        limit: int = 100,
+        offset: int = 0,
+        status: str | None = None,
+    ) -> list[RetentionAction]:
+        statement = select(RetentionAction)
+
+        if status is not None:
+            statement = statement.where(
+                RetentionAction.status == status
+            )
+
+        statement = statement.order_by(
+            RetentionAction.created_at.desc()
+        ).limit(limit).offset(offset)
+
+        return list(self.db.scalars(statement).all())
+
     def get_by_prediction(
         self,
         prediction_id: int,
     ) -> list[RetentionAction]:
         statement = (
             select(RetentionAction)
-            .where(RetentionAction.prediction_id == prediction_id)
+            .where(
+                RetentionAction.prediction_id == prediction_id
+            )
             .order_by(RetentionAction.created_at.desc())
         )
 
