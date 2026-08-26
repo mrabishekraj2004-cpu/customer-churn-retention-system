@@ -6,8 +6,51 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from api.main import app
+from api.routes.prediction import get_prediction_service
 from src.database import models  # noqa: F401
 from src.database.session import Base, get_db
+
+
+class FakePredictionService:
+    """Fake predictor used by API tests so CI does not need model artifacts."""
+
+    def predict(self, customer: dict) -> dict:
+        monthly_charges = float(customer["MonthlyCharges"])
+        tenure = int(customer["tenure"])
+        contract = customer["Contract"]
+
+        churn_probability = 0.85
+
+        if contract == "Two year":
+            churn_probability -= 0.35
+
+        if tenure >= 24:
+            churn_probability -= 0.15
+
+        if monthly_charges < 50:
+            churn_probability -= 0.10
+
+        churn_probability = max(
+            0.0,
+            min(churn_probability, 1.0),
+        )
+
+        if churn_probability >= 0.80:
+            risk_level = "critical"
+        elif churn_probability >= 0.60:
+            risk_level = "high"
+        elif churn_probability >= 0.30:
+            risk_level = "medium"
+        else:
+            risk_level = "low"
+
+        return {
+            "churn_probability": churn_probability,
+            "risk_level": risk_level,
+            "retention_action_required": churn_probability >= 0.80,
+            "operating_threshold": 0.80,
+            "model_version": "1.0.0",
+        }
 
 
 @pytest.fixture
@@ -44,7 +87,11 @@ def client(
     def override_get_db() -> Generator[Session, None, None]:
         yield db_session
 
+    def override_prediction_service() -> FakePredictionService:
+        return FakePredictionService()
+
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_prediction_service] = override_prediction_service
 
     with TestClient(app) as test_client:
         yield test_client

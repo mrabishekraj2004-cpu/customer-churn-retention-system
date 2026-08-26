@@ -16,7 +16,9 @@ router = APIRouter(
     tags=["predictions"],
 )
 
-prediction_service = PredictionService()
+
+def get_prediction_service() -> PredictionService:
+    return PredictionService()
 
 
 @router.post(
@@ -26,10 +28,14 @@ prediction_service = PredictionService()
 def predict_churn(
     customer: CustomerFeatures,
     db: Annotated[Session, Depends(get_db)],
+    predictor: Annotated[
+        PredictionService,
+        Depends(get_prediction_service),
+    ],
 ) -> PredictionResponse:
     service = CustomerPredictionService(
         db=db,
-        predictor=prediction_service,
+        predictor=predictor,
     )
 
     result = service.predict(customer.model_dump())
