@@ -43,6 +43,7 @@ def get_analytics_summary(
         total_customers=summary.total_customers,
         total_monthly_revenue=summary.total_monthly_revenue,
         monthly_revenue_at_risk=summary.monthly_revenue_at_risk,
+        expected_monthly_revenue_loss=(summary.expected_monthly_revenue_loss),
         customers_with_predictions=(summary.customers_with_predictions),
         high_risk_customers=summary.high_risk_customers,
         average_churn_probability=(summary.average_churn_probability),

@@ -63,6 +63,7 @@ def test_empty_analytics_summary(
 
     assert summary.total_customers == 0
     assert summary.total_monthly_revenue == 0.0
+    assert summary.monthly_revenue_at_risk == 0.0
     assert summary.customers_with_predictions == 0
     assert summary.high_risk_customers == 0
     assert summary.average_churn_probability == 0.0
@@ -90,30 +91,34 @@ def test_summary_calculates_customer_metrics(
 ) -> None:
     customers = CustomerRepository(db_session)
 
-    first_customer = customers.create(
-        customer_id="SERVICE-ANALYTICS-001",
-        customer_data=customer_data(50.0),
+    customer_one = customers.create(
+        customer_id="SERVICE-CUSTOMER-001",
+        customer_data=customer_data(
+            monthly_charges=100.0,
+        ),
     )
 
-    second_customer = customers.create(
-        customer_id="SERVICE-ANALYTICS-002",
-        customer_data=customer_data(100.0),
+    customer_two = customers.create(
+        customer_id="SERVICE-CUSTOMER-002",
+        customer_data=customer_data(
+            monthly_charges=50.0,
+        ),
     )
 
     create_prediction(
         db_session,
-        first_customer.id,
+        customer_one.id,
+        churn_probability=0.90,
+        risk_level="critical",
+        retention_action_required=True,
+    )
+
+    create_prediction(
+        db_session,
+        customer_two.id,
         churn_probability=0.20,
         risk_level="low",
         retention_action_required=False,
-    )
-
-    create_prediction(
-        db_session,
-        second_customer.id,
-        churn_probability=0.80,
-        risk_level="high",
-        retention_action_required=True,
     )
 
     service = AnalyticsService(AnalyticsRepository(db_session))
@@ -124,7 +129,7 @@ def test_summary_calculates_customer_metrics(
     assert summary.total_monthly_revenue == 150.0
     assert summary.customers_with_predictions == 2
     assert summary.high_risk_customers == 1
-    assert summary.average_churn_probability == 0.5
+    assert summary.average_churn_probability == 0.55
 
 
 def test_summary_uses_only_latest_prediction(
@@ -140,17 +145,17 @@ def test_summary_uses_only_latest_prediction(
     create_prediction(
         db_session,
         customer.id,
-        churn_probability=0.20,
-        risk_level="low",
-        retention_action_required=False,
+        churn_probability=0.90,
+        risk_level="critical",
+        retention_action_required=True,
     )
 
     create_prediction(
         db_session,
         customer.id,
-        churn_probability=0.90,
-        risk_level="critical",
-        retention_action_required=True,
+        churn_probability=0.20,
+        risk_level="low",
+        retention_action_required=False,
     )
 
     service = AnalyticsService(AnalyticsRepository(db_session))
@@ -158,11 +163,13 @@ def test_summary_uses_only_latest_prediction(
     summary = service.get_summary()
 
     assert summary.customers_with_predictions == 1
-    assert summary.high_risk_customers == 1
-    assert summary.average_churn_probability == 0.90
+    assert summary.high_risk_customers == 0
+    assert summary.average_churn_probability == 0.20
 
-    assert summary.low_risk_customers == 0
-    assert summary.critical_risk_customers == 1
+    assert summary.low_risk_customers == 1
+    assert summary.medium_risk_customers == 0
+    assert summary.high_risk_level_customers == 0
+    assert summary.critical_risk_customers == 0
 
 
 def test_summary_calculates_risk_distribution(
@@ -171,28 +178,29 @@ def test_summary_calculates_risk_distribution(
     customers = CustomerRepository(db_session)
 
     risk_levels = [
-        ("low", 0.10, False),
-        ("medium", 0.40, False),
-        ("high", 0.70, True),
-        ("critical", 0.95, True),
+        ("SERVICE-RISK-LOW", 0.10, "low", False),
+        ("SERVICE-RISK-MEDIUM", 0.40, "medium", False),
+        ("SERVICE-RISK-HIGH", 0.70, "high", True),
+        ("SERVICE-RISK-CRITICAL", 0.90, "critical", True),
     ]
 
-    for index, (
+    for (
+        customer_id,
+        churn_probability,
         risk_level,
-        probability,
-        action_required,
-    ) in enumerate(risk_levels):
+        retention_required,
+    ) in risk_levels:
         customer = customers.create(
-            customer_id=f"SERVICE-RISK-{index}",
+            customer_id=customer_id,
             customer_data=customer_data(),
         )
 
         create_prediction(
             db_session,
             customer.id,
-            churn_probability=probability,
+            churn_probability=churn_probability,
             risk_level=risk_level,
-            retention_action_required=action_required,
+            retention_action_required=retention_required,
         )
 
     service = AnalyticsService(AnalyticsRepository(db_session))
@@ -204,6 +212,7 @@ def test_summary_calculates_risk_distribution(
     assert summary.high_risk_level_customers == 1
     assert summary.critical_risk_customers == 1
 
+    assert summary.customers_with_predictions == 4
     assert summary.high_risk_customers == 2
 
 
@@ -214,7 +223,7 @@ def test_summary_calculates_retention_action_metrics(
     actions = RetentionActionRepository(db_session)
 
     customer = customers.create(
-        customer_id="SERVICE-ACTIONS-001",
+        customer_id="SERVICE-ACTION-001",
         customer_data=customer_data(),
     )
 
@@ -226,7 +235,7 @@ def test_summary_calculates_retention_action_metrics(
         retention_action_required=True,
     )
 
-    actions.create(
+    recommended = actions.create(
         prediction_id=prediction.id,
         action_type="recommended_action",
         description="Recommended action.",
@@ -242,16 +251,23 @@ def test_summary_calculates_retention_action_metrics(
 
     completed_retained = actions.create(
         prediction_id=prediction.id,
-        action_type="retained_action",
+        action_type="completed_retained_action",
         description="Completed retained action.",
         estimated_cost=30.0,
     )
 
     completed_churned = actions.create(
         prediction_id=prediction.id,
-        action_type="churned_action",
+        action_type="completed_churned_action",
         description="Completed churned action.",
         estimated_cost=40.0,
+    )
+
+    completed_unknown = actions.create(
+        prediction_id=prediction.id,
+        action_type="completed_unknown_action",
+        description="Completed unknown action.",
+        estimated_cost=None,
     )
 
     actions.update_status(
@@ -261,28 +277,48 @@ def test_summary_calculates_retention_action_metrics(
 
     actions.update_status(
         completed_retained,
+        status="in_progress",
+    )
+    actions.update_status(
+        completed_retained,
         status="completed",
         outcome="retained",
     )
 
     actions.update_status(
         completed_churned,
+        status="in_progress",
+    )
+    actions.update_status(
+        completed_churned,
         status="completed",
         outcome="churned",
+    )
+
+    actions.update_status(
+        completed_unknown,
+        status="in_progress",
+    )
+    actions.update_status(
+        completed_unknown,
+        status="completed",
+        outcome="unknown",
     )
 
     service = AnalyticsService(AnalyticsRepository(db_session))
 
     summary = service.get_summary()
 
-    assert summary.total_retention_actions == 4
+    assert recommended.status == "recommended"
+
+    assert summary.total_retention_actions == 5
     assert summary.recommended_actions == 1
     assert summary.in_progress_actions == 1
-    assert summary.completed_actions == 2
+    assert summary.completed_actions == 3
 
     assert summary.retained_customers == 1
     assert summary.churned_customers == 1
-    assert summary.unknown_outcomes == 0
+    assert summary.unknown_outcomes == 1
 
     assert summary.retention_success_rate == 50.0
     assert summary.total_estimated_cost == 100.0
@@ -295,7 +331,7 @@ def test_retention_success_rate_excludes_unknown_outcomes(
     actions = RetentionActionRepository(db_session)
 
     customer = customers.create(
-        customer_id="SERVICE-OUTCOME-001",
+        customer_id="SERVICE-SUCCESS-RATE-001",
         customer_data=customer_data(),
     )
 
@@ -327,16 +363,28 @@ def test_retention_success_rate_excludes_unknown_outcomes(
 
     actions.update_status(
         retained,
+        status="in_progress",
+    )
+    actions.update_status(
+        retained,
         status="completed",
         outcome="retained",
     )
 
     actions.update_status(
         churned,
+        status="in_progress",
+    )
+    actions.update_status(
+        churned,
         status="completed",
         outcome="churned",
     )
 
+    actions.update_status(
+        unknown,
+        status="in_progress",
+    )
     actions.update_status(
         unknown,
         status="completed",
@@ -382,6 +430,10 @@ def test_retention_success_rate_is_zero_without_resolved_outcomes(
 
     actions.update_status(
         unknown,
+        status="in_progress",
+    )
+    actions.update_status(
+        unknown,
         status="completed",
         outcome="unknown",
     )
@@ -394,6 +446,7 @@ def test_retention_success_rate_is_zero_without_resolved_outcomes(
     assert summary.churned_customers == 0
     assert summary.unknown_outcomes == 1
     assert summary.retention_success_rate == 0.0
+
 
 def test_summary_calculates_monthly_revenue_at_risk(
     db_session: Session,
@@ -430,9 +483,7 @@ def test_summary_calculates_monthly_revenue_at_risk(
         retention_action_required=False,
     )
 
-    service = AnalyticsService(
-        AnalyticsRepository(db_session)
-    )
+    service = AnalyticsService(AnalyticsRepository(db_session))
 
     summary = service.get_summary()
 
@@ -443,10 +494,60 @@ def test_summary_calculates_monthly_revenue_at_risk(
 def test_summary_monthly_revenue_at_risk_is_zero_when_empty(
     db_session: Session,
 ) -> None:
-    service = AnalyticsService(
-        AnalyticsRepository(db_session)
-    )
+    service = AnalyticsService(AnalyticsRepository(db_session))
 
     summary = service.get_summary()
 
     assert summary.monthly_revenue_at_risk == 0.0
+
+
+def test_summary_calculates_expected_monthly_revenue_loss(
+    db_session: Session,
+) -> None:
+    customers = CustomerRepository(db_session)
+
+    customer_one = customers.create(
+        customer_id="SERVICE-EXPECTED-LOSS-001",
+        customer_data=customer_data(
+            monthly_charges=100.0,
+        ),
+    )
+
+    customer_two = customers.create(
+        customer_id="SERVICE-EXPECTED-LOSS-002",
+        customer_data=customer_data(
+            monthly_charges=50.0,
+        ),
+    )
+
+    create_prediction(
+        db_session,
+        customer_one.id,
+        churn_probability=0.90,
+        risk_level="critical",
+        retention_action_required=True,
+    )
+
+    create_prediction(
+        db_session,
+        customer_two.id,
+        churn_probability=0.20,
+        risk_level="low",
+        retention_action_required=False,
+    )
+
+    service = AnalyticsService(AnalyticsRepository(db_session))
+
+    summary = service.get_summary()
+
+    assert summary.expected_monthly_revenue_loss == 100.0
+
+
+def test_summary_expected_monthly_revenue_loss_is_zero_when_empty(
+    db_session: Session,
+) -> None:
+    service = AnalyticsService(AnalyticsRepository(db_session))
+
+    summary = service.get_summary()
+
+    assert summary.expected_monthly_revenue_loss == 0.0

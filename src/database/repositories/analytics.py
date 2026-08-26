@@ -94,3 +94,24 @@ class AnalyticsRepository:
         )
 
         return float(self.db.scalar(statement) or 0.0)
+
+    def get_expected_monthly_revenue_loss(self) -> float:
+        latest_prediction_ids = (
+            select(func.max(Prediction.id)).group_by(Prediction.customer_id).subquery()
+        )
+
+        statement = (
+            select(
+                func.coalesce(
+                    func.sum(Customer.monthly_charges * Prediction.churn_probability),
+                    0.0,
+                )
+            )
+            .join(
+                Prediction,
+                Prediction.customer_id == Customer.id,
+            )
+            .where(Prediction.id.in_(select(latest_prediction_ids.c[0])))
+        )
+
+        return float(self.db.scalar(statement) or 0.0)

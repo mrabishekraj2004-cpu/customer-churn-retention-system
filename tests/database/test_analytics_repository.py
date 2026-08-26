@@ -452,3 +452,95 @@ def test_monthly_revenue_at_risk_is_zero_when_database_is_empty(
     analytics = AnalyticsRepository(db_session)
 
     assert analytics.get_monthly_revenue_at_risk() == 0.0
+
+
+def test_get_expected_monthly_revenue_loss(
+    db_session: Session,
+) -> None:
+    customers = CustomerRepository(db_session)
+    predictions = PredictionRepository(db_session)
+    analytics = AnalyticsRepository(db_session)
+
+    customer_one = customers.create(
+        customer_id="EXPECTED-LOSS-001",
+        customer_data=customer_data(
+            monthly_charges=100.0,
+        ),
+    )
+
+    customer_two = customers.create(
+        customer_id="EXPECTED-LOSS-002",
+        customer_data=customer_data(
+            monthly_charges=50.0,
+        ),
+    )
+
+    predictions.create(
+        customer_id=customer_one.id,
+        churn_probability=0.90,
+        risk_level="critical",
+        retention_action_required=True,
+        operating_threshold=0.80,
+        model_version="1.0.0",
+    )
+
+    predictions.create(
+        customer_id=customer_two.id,
+        churn_probability=0.20,
+        risk_level="low",
+        retention_action_required=False,
+        operating_threshold=0.80,
+        model_version="1.0.0",
+    )
+
+    result = analytics.get_expected_monthly_revenue_loss()
+
+    # 100 * 0.90 + 50 * 0.20 = 100
+    assert result == 100.0
+
+
+def test_expected_monthly_revenue_loss_uses_latest_prediction(
+    db_session: Session,
+) -> None:
+    customers = CustomerRepository(db_session)
+    predictions = PredictionRepository(db_session)
+    analytics = AnalyticsRepository(db_session)
+
+    customer = customers.create(
+        customer_id="EXPECTED-LOSS-LATEST-001",
+        customer_data=customer_data(
+            monthly_charges=100.0,
+        ),
+    )
+
+    predictions.create(
+        customer_id=customer.id,
+        churn_probability=0.90,
+        risk_level="critical",
+        retention_action_required=True,
+        operating_threshold=0.80,
+        model_version="1.0.0",
+    )
+
+    predictions.create(
+        customer_id=customer.id,
+        churn_probability=0.20,
+        risk_level="low",
+        retention_action_required=False,
+        operating_threshold=0.80,
+        model_version="1.0.0",
+    )
+
+    result = analytics.get_expected_monthly_revenue_loss()
+
+    # Only the latest prediction should contribute:
+    # 100 * 0.20 = 20
+    assert result == 20.0
+
+
+def test_expected_monthly_revenue_loss_is_zero_when_database_is_empty(
+    db_session: Session,
+) -> None:
+    analytics = AnalyticsRepository(db_session)
+
+    assert analytics.get_expected_monthly_revenue_loss() == 0.0

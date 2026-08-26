@@ -30,6 +30,8 @@ def test_analytics_summary_empty_database(
 
     assert data["total_customers"] == 0
     assert data["total_monthly_revenue"] == 0.0
+    assert data["monthly_revenue_at_risk"] == 0.0
+    assert data["expected_monthly_revenue_loss"] == 0.0
     assert data["customers_with_predictions"] == 0
     assert data["high_risk_customers"] == 0
     assert data["average_churn_probability"] == 0.0
@@ -258,3 +260,51 @@ def test_analytics_summary_monthly_revenue_at_risk_is_zero_when_empty(
     data = response.json()
 
     assert data["monthly_revenue_at_risk"] == 0.0
+
+
+def test_analytics_summary_contains_expected_monthly_revenue_loss(
+    client: TestClient,
+    customer_payload: dict,
+) -> None:
+    high_risk_payload = customer_payload.copy()
+
+    high_risk_payload["customer_id"] = "API-EXPECTED-LOSS-001"
+    high_risk_payload["MonthlyCharges"] = 100.0
+    high_risk_payload["TotalCharges"] = 1000.0
+
+    prediction_response = client.post(
+        "/api/v1/predict",
+        json=high_risk_payload,
+    )
+
+    assert prediction_response.status_code == 200
+
+    prediction_data = prediction_response.json()
+
+    assert prediction_data["retention_action_required"] is True
+
+    churn_probability = prediction_data["churn_probability"]
+
+    expected_loss = high_risk_payload["MonthlyCharges"] * churn_probability
+
+    summary_response = client.get("/api/v1/analytics/summary")
+
+    assert summary_response.status_code == 200
+
+    data = summary_response.json()
+
+    assert data["total_monthly_revenue"] == 100.0
+    assert data["monthly_revenue_at_risk"] == 100.0
+    assert data["expected_monthly_revenue_loss"] == (expected_loss)
+
+
+def test_analytics_summary_expected_monthly_revenue_loss_is_zero_when_empty(
+    client: TestClient,
+) -> None:
+    response = client.get("/api/v1/analytics/summary")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["expected_monthly_revenue_loss"] == 0.0
