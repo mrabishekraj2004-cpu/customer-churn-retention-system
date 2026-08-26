@@ -1,0 +1,20 @@
+stages:
+  - test
+
+default:
+  image: python:3.14
+
+before_script:
+  - python --version
+  - python -m pip install --upgrade pip
+  - pip install -r requirements.txt
+
+ruff:
+  stage: test
+  script:
+    - ruff check .
+
+pytest:
+  stage: test
+  script:
+    - pytest -q
