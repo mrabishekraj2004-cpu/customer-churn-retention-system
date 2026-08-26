@@ -91,18 +91,15 @@ class RetentionActionService:
 
         if new_status not in allowed_transitions[current_status]:
             raise InvalidRetentionActionUpdateError(
-                f"Cannot change retention action from "
-                f"{current_status} to {new_status}."
+                f"Cannot change retention action from {current_status} to {new_status}."
             )
 
         if new_status == "completed" and outcome is None:
             raise InvalidRetentionActionUpdateError(
-                "An outcome is required when completing "
-                "a retention action."
+                "An outcome is required when completing a retention action."
             )
 
         if new_status != "completed" and outcome is not None:
             raise InvalidRetentionActionUpdateError(
-                "Outcome can only be provided for a completed "
-                "retention action."
+                "Outcome can only be provided for a completed retention action."
             )

@@ -45,13 +45,13 @@ class RetentionActionRepository:
         statement = select(RetentionAction)
 
         if status is not None:
-            statement = statement.where(
-                RetentionAction.status == status
-            )
+            statement = statement.where(RetentionAction.status == status)
 
-        statement = statement.order_by(
-            RetentionAction.created_at.desc()
-        ).limit(limit).offset(offset)
+        statement = (
+            statement.order_by(RetentionAction.created_at.desc())
+            .limit(limit)
+            .offset(offset)
+        )
 
         return list(self.db.scalars(statement).all())
 
@@ -61,9 +61,7 @@ class RetentionActionRepository:
     ) -> list[RetentionAction]:
         statement = (
             select(RetentionAction)
-            .where(
-                RetentionAction.prediction_id == prediction_id
-            )
+            .where(RetentionAction.prediction_id == prediction_id)
             .order_by(RetentionAction.created_at.desc())
         )
 

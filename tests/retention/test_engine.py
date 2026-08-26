@@ -77,9 +77,7 @@ def test_support_offer_for_high_risk_customer_without_support() -> None:
     assert result["retention_action_required"] is True
     assert result["action_type"] == "support_offer"
     assert result["priority"] == "high"
-    assert result["suggested_offer"] == (
-        "Complimentary technical support trial"
-    )
+    assert result["suggested_offer"] == ("Complimentary technical support trial")
 
 
 def test_fiber_customer_gets_service_review_when_other_rules_do_not_match() -> None:

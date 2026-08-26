@@ -39,8 +39,7 @@ class CustomerService:
         )
 
         customer_summaries = [
-            self._build_customer_summary(customer)
-            for customer in customers
+            self._build_customer_summary(customer) for customer in customers
         ]
 
         return CustomerListResponse(
@@ -63,9 +62,7 @@ class CustomerService:
         high_risk_customers: list[HighRiskCustomerResponse] = []
 
         for customer in customers:
-            latest_prediction = self._get_latest_prediction(
-                customer.id
-            )
+            latest_prediction = self._get_latest_prediction(customer.id)
 
             if latest_prediction is None:
                 continue
@@ -81,9 +78,7 @@ class CustomerService:
                     contract=customer.contract,
                     internet_service=customer.internet_service,
                     monthly_charges=customer.monthly_charges,
-                    churn_probability=(
-                        latest_prediction.churn_probability
-                    ),
+                    churn_probability=(latest_prediction.churn_probability),
                     risk_level=latest_prediction.risk_level,
                     prediction_id=latest_prediction.id,
                     predicted_at=latest_prediction.created_at,
@@ -95,9 +90,7 @@ class CustomerService:
             reverse=True,
         )
 
-        paginated_customers = high_risk_customers[
-            offset : offset + limit
-        ]
+        paginated_customers = high_risk_customers[offset : offset + limit]
 
         return HighRiskCustomerListResponse(
             customers=paginated_customers,
@@ -110,18 +103,12 @@ class CustomerService:
         self,
         customer_id: str,
     ) -> CustomerDetailResponse:
-        customer = self.customer_repository.get_by_customer_id(
-            customer_id
-        )
+        customer = self.customer_repository.get_by_customer_id(customer_id)
 
         if customer is None:
-            raise CustomerNotFoundError(
-                f"Customer not found: {customer_id}"
-            )
+            raise CustomerNotFoundError(f"Customer not found: {customer_id}")
 
-        latest_prediction = self._get_latest_prediction(
-            customer.id
-        )
+        latest_prediction = self._get_latest_prediction(customer.id)
 
         return CustomerDetailResponse(
             id=customer.id,
@@ -147,18 +134,14 @@ class CustomerService:
             total_charges=customer.total_charges,
             created_at=customer.created_at,
             updated_at=customer.updated_at,
-            latest_prediction=self._build_prediction_response(
-                latest_prediction
-            ),
+            latest_prediction=self._build_prediction_response(latest_prediction),
         )
 
     def _build_customer_summary(
         self,
         customer: Customer,
     ) -> CustomerSummaryResponse:
-        latest_prediction = self._get_latest_prediction(
-            customer.id
-        )
+        latest_prediction = self._get_latest_prediction(customer.id)
 
         return CustomerSummaryResponse(
             id=customer.id,
@@ -168,20 +151,14 @@ class CustomerService:
             internet_service=customer.internet_service,
             monthly_charges=customer.monthly_charges,
             total_charges=customer.total_charges,
-            latest_prediction=self._build_prediction_response(
-                latest_prediction
-            ),
+            latest_prediction=self._build_prediction_response(latest_prediction),
         )
 
     def _get_latest_prediction(
         self,
         customer_db_id: int,
     ) -> Prediction | None:
-        predictions = (
-            self.prediction_repository.get_customer_history(
-                customer_db_id
-            )
-        )
+        predictions = self.prediction_repository.get_customer_history(customer_db_id)
 
         if not predictions:
             return None
@@ -199,9 +176,7 @@ class CustomerService:
             prediction_id=prediction.id,
             churn_probability=prediction.churn_probability,
             risk_level=prediction.risk_level,
-            retention_action_required=(
-                prediction.retention_action_required
-            ),
+            retention_action_required=(prediction.retention_action_required),
             model_version=prediction.model_version,
             created_at=prediction.created_at,
         )
