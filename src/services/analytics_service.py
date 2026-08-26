@@ -36,6 +36,10 @@ class AnalyticsSummary:
     retention_success_rate: float
     total_estimated_cost: float
 
+    revenue_saved: float
+    net_retention_benefit: float
+    retention_roi: float
+
 
 class AnalyticsService:
     """Calculate business analytics from churn and retention data."""
@@ -102,6 +106,21 @@ class AnalyticsService:
 
         expected_annual_revenue_loss = expected_monthly_revenue_loss * 12
 
+        total_estimated_cost = self.repository.get_total_estimated_cost()
+
+        retained_monthly_revenue = (
+            self.repository.get_retained_customer_monthly_revenue()
+        )
+
+        revenue_saved = retained_monthly_revenue * 12
+
+        net_retention_benefit = revenue_saved - total_estimated_cost
+
+        retention_roi = self._retention_roi(
+            revenue_saved=revenue_saved,
+            retention_cost=total_estimated_cost,
+        )
+
         return AnalyticsSummary(
             total_customers=self.repository.get_total_customers(),
             total_monthly_revenue=(self.repository.get_total_monthly_revenue()),
@@ -124,7 +143,10 @@ class AnalyticsService:
             churned_customers=churned_customers,
             unknown_outcomes=unknown_outcomes,
             retention_success_rate=retention_success_rate,
-            total_estimated_cost=(self.repository.get_total_estimated_cost()),
+            total_estimated_cost=total_estimated_cost,
+            revenue_saved=revenue_saved,
+            net_retention_benefit=net_retention_benefit,
+            retention_roi=retention_roi,
         )
 
     @staticmethod
@@ -168,3 +190,15 @@ class AnalyticsService:
             return 0.0
 
         return retained / resolved_outcomes * 100
+
+    @staticmethod
+    def _retention_roi(
+        revenue_saved: float,
+        retention_cost: float,
+    ) -> float:
+        if retention_cost <= 0:
+            return 0.0
+
+        net_benefit = revenue_saved - retention_cost
+
+        return net_benefit / retention_cost * 100

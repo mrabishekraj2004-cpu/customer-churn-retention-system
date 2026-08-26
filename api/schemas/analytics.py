@@ -42,3 +42,7 @@ class AnalyticsSummaryResponse(BaseModel):
     retention_outcomes: RetentionOutcomeMetricsResponse
 
     total_estimated_cost: float
+
+    revenue_saved: float
+    net_retention_benefit: float
+    retention_roi: float

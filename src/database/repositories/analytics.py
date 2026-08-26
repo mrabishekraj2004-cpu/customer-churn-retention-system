@@ -85,12 +85,15 @@ class AnalyticsRepository:
                     0.0,
                 )
             )
+            .select_from(Prediction)
             .join(
-                Prediction,
-                Prediction.customer_id == Customer.id,
+                Customer,
+                Customer.id == Prediction.customer_id,
             )
-            .where(Prediction.id.in_(select(latest_prediction_ids.c[0])))
-            .where(Prediction.retention_action_required.is_(True))
+            .where(
+                Prediction.id.in_(select(latest_prediction_ids.c[0])),
+                Prediction.retention_action_required.is_(True),
+            )
         )
 
         return float(self.db.scalar(statement) or 0.0)
@@ -107,11 +110,36 @@ class AnalyticsRepository:
                     0.0,
                 )
             )
+            .select_from(Prediction)
             .join(
-                Prediction,
-                Prediction.customer_id == Customer.id,
+                Customer,
+                Customer.id == Prediction.customer_id,
             )
             .where(Prediction.id.in_(select(latest_prediction_ids.c[0])))
         )
+
+        return float(self.db.scalar(statement) or 0.0)
+
+    def get_retained_customer_monthly_revenue(self) -> float:
+        retained_customer_ids = (
+            select(Prediction.customer_id)
+            .join(
+                RetentionAction,
+                RetentionAction.prediction_id == Prediction.id,
+            )
+            .where(
+                RetentionAction.status == "completed",
+                RetentionAction.outcome == "retained",
+            )
+            .distinct()
+            .subquery()
+        )
+
+        statement = select(
+            func.coalesce(
+                func.sum(Customer.monthly_charges),
+                0.0,
+            )
+        ).where(Customer.id.in_(select(retained_customer_ids.c.customer_id)))
 
         return float(self.db.scalar(statement) or 0.0)

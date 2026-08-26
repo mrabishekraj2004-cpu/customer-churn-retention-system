@@ -68,4 +68,7 @@ def get_analytics_summary(
             success_rate=summary.retention_success_rate,
         ),
         total_estimated_cost=summary.total_estimated_cost,
+        revenue_saved=summary.revenue_saved,
+        net_retention_benefit=(summary.net_retention_benefit),
+        retention_roi=summary.retention_roi,
     )
