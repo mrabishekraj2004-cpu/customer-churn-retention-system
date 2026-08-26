@@ -5,8 +5,11 @@ from typing import Any
 import joblib
 import pandas as pd
 
-MODEL_PATH = Path("models/churn_pipeline.joblib")
-METADATA_PATH = Path("models/churn_pipeline_metadata.json")
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+MODEL_DIR = PROJECT_ROOT / "models"
+
+MODEL_PATH = MODEL_DIR / "churn_pipeline.joblib"
+METADATA_PATH = MODEL_DIR / "churn_pipeline_metadata.json"
 
 
 class PredictionService:
@@ -37,7 +40,10 @@ class PredictionService:
     @staticmethod
     def _load_metadata(path: Path) -> dict[str, Any]:
         if not path.exists():
-            raise FileNotFoundError(f"Model metadata not found: {path}.")
+            raise FileNotFoundError(
+                f"Model metadata not found: {path}. "
+                "Run the production training pipeline first."
+            )
 
         with path.open(encoding="utf-8") as file:
             return json.load(file)
