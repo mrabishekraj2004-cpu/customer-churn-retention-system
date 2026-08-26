@@ -30,8 +30,13 @@ def test_analytics_summary_empty_database(
 
     assert data["total_customers"] == 0
     assert data["total_monthly_revenue"] == 0.0
+
     assert data["monthly_revenue_at_risk"] == 0.0
+    assert data["annual_revenue_at_risk"] == 0.0
+
     assert data["expected_monthly_revenue_loss"] == 0.0
+    assert data["expected_annual_revenue_loss"] == 0.0
+
     assert data["customers_with_predictions"] == 0
     assert data["high_risk_customers"] == 0
     assert data["average_churn_probability"] == 0.0
@@ -58,6 +63,10 @@ def test_analytics_summary_empty_database(
     }
 
     assert data["total_estimated_cost"] == 0.0
+
+    assert data["revenue_saved"] == 0.0
+    assert data["net_retention_benefit"] == 0.0
+    assert data["retention_roi"] == 0.0
 
 
 def test_analytics_summary_contains_customer_metrics(
@@ -295,7 +304,7 @@ def test_analytics_summary_contains_expected_monthly_revenue_loss(
 
     assert data["total_monthly_revenue"] == 100.0
     assert data["monthly_revenue_at_risk"] == 100.0
-    assert data["expected_monthly_revenue_loss"] == (expected_loss)
+    assert data["expected_monthly_revenue_loss"] == expected_loss
 
 
 def test_analytics_summary_expected_monthly_revenue_loss_is_zero_when_empty(
@@ -308,3 +317,133 @@ def test_analytics_summary_expected_monthly_revenue_loss_is_zero_when_empty(
     data = response.json()
 
     assert data["expected_monthly_revenue_loss"] == 0.0
+
+
+def test_analytics_summary_contains_annual_revenue_metrics(
+    client: TestClient,
+    customer_payload: dict,
+) -> None:
+    payload = customer_payload.copy()
+
+    payload["customer_id"] = "API-ANNUAL-REVENUE-001"
+    payload["MonthlyCharges"] = 100.0
+    payload["TotalCharges"] = 1000.0
+
+    prediction_response = client.post(
+        "/api/v1/predict",
+        json=payload,
+    )
+
+    assert prediction_response.status_code == 200
+
+    prediction_data = prediction_response.json()
+
+    assert prediction_data["retention_action_required"] is True
+
+    churn_probability = prediction_data["churn_probability"]
+
+    expected_monthly_loss = payload["MonthlyCharges"] * churn_probability
+
+    summary_response = client.get("/api/v1/analytics/summary")
+
+    assert summary_response.status_code == 200
+
+    data = summary_response.json()
+
+    assert data["monthly_revenue_at_risk"] == 100.0
+    assert data["annual_revenue_at_risk"] == 1200.0
+
+    assert data["expected_monthly_revenue_loss"] == (expected_monthly_loss)
+
+    assert data["expected_annual_revenue_loss"] == (expected_monthly_loss * 12)
+
+
+def test_analytics_summary_annual_metrics_are_zero_when_empty(
+    client: TestClient,
+) -> None:
+    response = client.get("/api/v1/analytics/summary")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["annual_revenue_at_risk"] == 0.0
+    assert data["expected_annual_revenue_loss"] == 0.0
+
+
+def test_analytics_summary_contains_retention_roi_metrics(
+    client: TestClient,
+    customer_payload: dict,
+) -> None:
+    payload = customer_payload.copy()
+
+    payload["customer_id"] = "API-ROI-001"
+    payload["MonthlyCharges"] = 100.0
+    payload["TotalCharges"] = 1000.0
+
+    prediction_response = client.post(
+        "/api/v1/predict",
+        json=payload,
+    )
+
+    assert prediction_response.status_code == 200
+
+    prediction_data = prediction_response.json()
+
+    assert prediction_data["retention_action_required"] is True
+
+    action_id = prediction_data["retention_recommendation"]["action_id"]
+
+    in_progress_response = client.patch(
+        f"/api/v1/retention-actions/{action_id}",
+        json={
+            "status": "in_progress",
+        },
+    )
+
+    assert in_progress_response.status_code == 200
+
+    completed_response = client.patch(
+        f"/api/v1/retention-actions/{action_id}",
+        json={
+            "status": "completed",
+            "outcome": "retained",
+        },
+    )
+
+    assert completed_response.status_code == 200
+
+    summary_response = client.get("/api/v1/analytics/summary")
+
+    assert summary_response.status_code == 200
+
+    data = summary_response.json()
+
+    assert data["revenue_saved"] == 1200.0
+
+    retention_cost = data["total_estimated_cost"]
+
+    assert retention_cost >= 0.0
+
+    assert data["net_retention_benefit"] == (data["revenue_saved"] - retention_cost)
+
+    if retention_cost > 0:
+        expected_roi = data["net_retention_benefit"] / retention_cost * 100
+
+        assert data["retention_roi"] == expected_roi
+    else:
+        assert data["retention_roi"] == 0.0
+
+
+def test_analytics_summary_roi_metrics_are_zero_when_empty(
+    client: TestClient,
+) -> None:
+    response = client.get("/api/v1/analytics/summary")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["revenue_saved"] == 0.0
+    assert data["net_retention_benefit"] == 0.0
+    assert data["retention_roi"] == 0.0
