@@ -155,13 +155,66 @@ The default database configuration is:
 DATABASE_URL=sqlite:///./customer_churn.db
 ```
 
-### 5. Initialize the database
+### 5. Prepare the Dataset and Model
+
+The raw dataset and trained `.joblib` model are intentionally not stored in Git.
+
+Place the Telco Customer Churn dataset at:
+
+```text
+data/raw/telco_customer_churn.csv
+```
+
+You can inspect the raw dataset with:
+
+```bash
+python -m src.data.inspect_data
+```
+
+Clean and validate the dataset:
+
+```bash
+python -m src.data.clean_data
+```
+
+The cleaned dataset will be created at:
+
+```text
+data/processed/telco_customer_churn.csv
+```
+
+Train the production churn model:
+
+```bash
+python -m src.models.train_production
+```
+
+The training pipeline generates:
+
+```text
+models/churn_pipeline.joblib
+models/churn_pipeline_metadata.json
+```
+
+The `.joblib` model artifact is ignored by Git and should be generated locally.
+
+See `data/README.md` for additional dataset setup information.
+
+### 6. Initialize the Database
 
 ```bash
 python scripts/init_db.py
 ```
 
-### 6. Start the API
+This creates the local SQLite database and the application tables:
+
+```text
+customers
+predictions
+retention_actions
+```
+
+### 7. Start the API
 
 ```bash
 uvicorn api.main:app --reload
@@ -177,6 +230,12 @@ FastAPI interactive documentation:
 
 ```text
 http://127.0.0.1:8000/docs
+```
+
+OpenAPI specification:
+
+```text
+http://127.0.0.1:8000/openapi.json
 ```
 
 ## Main API Areas
@@ -197,6 +256,15 @@ The application includes APIs for:
 GET /health
 ```
 
+Example response:
+
+```json
+{
+  "status": "ok",
+  "service": "customer-churn-api"
+}
+```
+
 ### Analytics Summary
 
 ```text
@@ -205,112 +273,56 @@ GET /api/v1/analytics/summary
 
 The analytics endpoint provides churn, revenue-risk, retention, and ROI metrics for business decision support.
 
-## Analytics Logic
-
-### Monthly Revenue at Risk
-
-Monthly revenue associated with customers whose latest prediction requires retention action.
-
-### Annual Revenue at Risk
-
-```text
-monthly_revenue_at_risk × 12
-```
-
-### Expected Monthly Revenue Loss
-
-Expected loss is calculated using customer monthly revenue and churn probability from the latest prediction.
-
-Conceptually:
-
-```text
-Σ(monthly_charges × churn_probability)
-```
-
-### Expected Annual Revenue Loss
-
-```text
-expected_monthly_revenue_loss × 12
-```
-
-### Revenue Saved
-
-Annualized monthly revenue associated with customers successfully retained through completed retention actions.
-
-```text
-retained_monthly_revenue × 12
-```
-
-### Net Retention Benefit
-
-```text
-revenue_saved - total_estimated_cost
-```
-
-### Retention ROI
-
-When retention cost is greater than zero:
-
-```text
-((revenue_saved - retention_cost) / retention_cost) × 100
-```
-
-## Running Tests
-
-Run the complete test suite:
-
-```bash
-pytest -q
-```
-
-Run a specific test area:
-
-```bash
-pytest tests/api -v
-pytest tests/database -v
-pytest tests/services -v
-pytest tests/retention -v
-```
-
-## Code Quality
-
-Check the project with Ruff:
-
-```bash
-ruff check .
-```
-
-Format the project:
-
-```bash
-ruff format .
-```
-
-Then verify formatting and linting:
-
-```bash
-ruff check .
-```
-
 ## Machine Learning Workflow
 
-The project contains separate modules for:
+The machine learning workflow is:
 
-1. Dataset inspection
-2. Data cleaning
-3. Feature preprocessing
-4. Model training
-5. Model evaluation
-6. Business evaluation
-7. Production model training
-8. Prediction
-9. Retention decision support
+```text
+Raw Telco Customer Dataset
+        ↓
+Dataset Inspection
+        ↓
+Data Validation and Cleaning
+        ↓
+Feature Preprocessing
+        ↓
+Model Training
+        ↓
+Model Evaluation
+        ↓
+Business Evaluation
+        ↓
+Production Model Training
+        ↓
+Prediction Service
+```
 
-The trained production pipeline is loaded by the prediction layer to generate churn probabilities used by the retention system.
+The production model uses a scikit-learn pipeline and Logistic Regression classifier.
+
+The saved production model is loaded by the prediction layer to calculate customer churn probabilities.
+
+## Churn Risk Classification
+
+Customers are classified into risk levels based on predicted churn probability:
+
+```text
+Low       < 0.40
+Medium    >= 0.40
+High      >= 0.60
+Critical  >= 0.80
+```
+
+The production operating threshold is:
+
+```text
+0.80
+```
+
+Customers whose churn probability reaches the operating threshold require retention action.
 
 ## Business Workflow
 
-The overall application workflow is:
+The application connects machine-learning predictions with retention operations:
 
 ```text
 Customer Data
@@ -332,9 +344,170 @@ Business Analytics
 Revenue Saved / ROI
 ```
 
+## Analytics Logic
+
+### Monthly Revenue at Risk
+
+Monthly revenue associated with customers whose latest prediction requires retention action.
+
+### Annual Revenue at Risk
+
+```text
+monthly_revenue_at_risk × 12
+```
+
+### Expected Monthly Revenue Loss
+
+Expected monthly revenue loss uses customer monthly revenue and churn probability from the latest applicable prediction.
+
+Conceptually:
+
+```text
+Σ(monthly_charges × churn_probability)
+```
+
+### Expected Annual Revenue Loss
+
+```text
+expected_monthly_revenue_loss × 12
+```
+
+### Revenue Saved
+
+Revenue saved represents annualized monthly revenue associated with customers successfully retained through completed retention actions.
+
+```text
+retained_monthly_revenue × 12
+```
+
+### Net Retention Benefit
+
+```text
+revenue_saved - total_estimated_cost
+```
+
+### Retention ROI
+
+When retention cost is greater than zero:
+
+```text
+((revenue_saved - retention_cost) / retention_cost) × 100
+```
+
+## Retention Action Lifecycle
+
+Retention recommendations follow this workflow:
+
+```text
+recommended
+     ↓
+in_progress
+     ↓
+completed
+```
+
+A completed retention action requires an outcome.
+
+Examples of outcomes include:
+
+```text
+retained
+churned
+unknown
+```
+
+Retention outcomes are used by the analytics layer to measure retention effectiveness.
+
+## Running Tests
+
+Run the complete test suite:
+
+```bash
+pytest -q
+```
+
+Run individual test areas:
+
+```bash
+pytest tests/api -v
+pytest tests/database -v
+pytest tests/services -v
+pytest tests/retention -v
+```
+
+The project includes tests for:
+
+- API endpoints
+- Database repositories
+- Customer services
+- Prediction workflows
+- Retention recommendation logic
+- Retention action lifecycle
+- Analytics calculations
+- Revenue-risk calculations
+- Retention ROI calculations
+
+## Code Quality
+
+Run Ruff:
+
+```bash
+ruff check .
+```
+
+Format the project:
+
+```bash
+ruff format .
+```
+
+Then verify:
+
+```bash
+ruff check .
+```
+
+## Local Files Excluded from Git
+
+The following development artifacts are intentionally excluded from the repository:
+
+```text
+.env
+.venv/
+customer_churn.db
+data/raw/telco_customer_churn.csv
+data/processed/telco_customer_churn.csv
+models/churn_pipeline.joblib
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+```
+
+This keeps environment-specific files, local datasets, databases, caches, and generated binary model artifacts out of source control.
+
+## Production Model Metadata
+
+The repository includes production model metadata describing:
+
+- Model name
+- Model version
+- Training timestamp
+- Number of training rows
+- Target variable
+- Positive class
+- Operating threshold
+- Numeric features
+- Categorical features
+
+The generated binary model itself is recreated locally using:
+
+```bash
+python -m src.models.train_production
+```
+
 ## Project Goal
 
-The goal of this project is not only to predict churn but to turn machine-learning predictions into actionable business decisions.
+The goal of this project is not only to predict customer churn but to turn machine-learning predictions into actionable business decisions.
 
 Instead of stopping at model probability output, the system connects predictions with:
 
@@ -343,6 +516,7 @@ Instead of stopping at model probability output, the system connects predictions
 - retention workflow tracking,
 - outcome measurement,
 - revenue-risk analysis,
+- revenue-saved calculations,
 - and retention ROI.
 
-This demonstrates an end-to-end approach to using machine learning in a business application.
+This demonstrates an end-to-end approach to applying machine learning within a business-oriented backend application.
