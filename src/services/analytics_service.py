@@ -8,8 +8,12 @@ from src.database.repositories import AnalyticsRepository
 class AnalyticsSummary:
     total_customers: int
     total_monthly_revenue: float
+
     monthly_revenue_at_risk: float
+    annual_revenue_at_risk: float
+
     expected_monthly_revenue_loss: float
+    expected_annual_revenue_loss: float
 
     customers_with_predictions: int
     high_risk_customers: int
@@ -88,28 +92,38 @@ class AnalyticsService:
             churned=churned_customers,
         )
 
+        monthly_revenue_at_risk = self.repository.get_monthly_revenue_at_risk()
+
+        expected_monthly_revenue_loss = (
+            self.repository.get_expected_monthly_revenue_loss()
+        )
+
+        annual_revenue_at_risk = monthly_revenue_at_risk * 12
+
+        expected_annual_revenue_loss = expected_monthly_revenue_loss * 12
+
         return AnalyticsSummary(
-            total_customers=(self.repository.get_total_customers()),
+            total_customers=self.repository.get_total_customers(),
             total_monthly_revenue=(self.repository.get_total_monthly_revenue()),
-            monthly_revenue_at_risk=(self.repository.get_monthly_revenue_at_risk()),
-            expected_monthly_revenue_loss=(
-                self.repository.get_expected_monthly_revenue_loss()
-            ),
-            customers_with_predictions=(customers_with_predictions),
+            monthly_revenue_at_risk=monthly_revenue_at_risk,
+            annual_revenue_at_risk=annual_revenue_at_risk,
+            expected_monthly_revenue_loss=(expected_monthly_revenue_loss),
+            expected_annual_revenue_loss=(expected_annual_revenue_loss),
+            customers_with_predictions=customers_with_predictions,
             high_risk_customers=high_risk_customers,
             average_churn_probability=(average_churn_probability),
             low_risk_customers=risk_counts["low"],
             medium_risk_customers=risk_counts["medium"],
-            high_risk_level_customers=(risk_counts["high"]),
-            critical_risk_customers=(risk_counts["critical"]),
-            total_retention_actions=(total_retention_actions),
+            high_risk_level_customers=risk_counts["high"],
+            critical_risk_customers=risk_counts["critical"],
+            total_retention_actions=total_retention_actions,
             recommended_actions=recommended_actions,
             in_progress_actions=in_progress_actions,
             completed_actions=completed_actions,
             retained_customers=retained_customers,
             churned_customers=churned_customers,
             unknown_outcomes=unknown_outcomes,
-            retention_success_rate=(retention_success_rate),
+            retention_success_rate=retention_success_rate,
             total_estimated_cost=(self.repository.get_total_estimated_cost()),
         )
 
