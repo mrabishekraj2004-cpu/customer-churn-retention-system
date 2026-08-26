@@ -1,3 +1,4 @@
+from src.database.repositories.analytics import AnalyticsRepository
 from src.database.repositories.customer import CustomerRepository
 from src.database.repositories.prediction import PredictionRepository
 from src.database.repositories.retention_action import (
@@ -5,6 +6,7 @@ from src.database.repositories.retention_action import (
 )
 
 __all__ = [
+    "AnalyticsRepository",
     "CustomerRepository",
     "PredictionRepository",
     "RetentionActionRepository",
