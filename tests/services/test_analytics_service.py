@@ -394,3 +394,59 @@ def test_retention_success_rate_is_zero_without_resolved_outcomes(
     assert summary.churned_customers == 0
     assert summary.unknown_outcomes == 1
     assert summary.retention_success_rate == 0.0
+
+def test_summary_calculates_monthly_revenue_at_risk(
+    db_session: Session,
+) -> None:
+    customers = CustomerRepository(db_session)
+
+    high_risk_customer = customers.create(
+        customer_id="SERVICE-REVENUE-RISK-001",
+        customer_data=customer_data(
+            monthly_charges=100.0,
+        ),
+    )
+
+    low_risk_customer = customers.create(
+        customer_id="SERVICE-REVENUE-RISK-002",
+        customer_data=customer_data(
+            monthly_charges=50.0,
+        ),
+    )
+
+    create_prediction(
+        db_session,
+        high_risk_customer.id,
+        churn_probability=0.90,
+        risk_level="critical",
+        retention_action_required=True,
+    )
+
+    create_prediction(
+        db_session,
+        low_risk_customer.id,
+        churn_probability=0.20,
+        risk_level="low",
+        retention_action_required=False,
+    )
+
+    service = AnalyticsService(
+        AnalyticsRepository(db_session)
+    )
+
+    summary = service.get_summary()
+
+    assert summary.total_monthly_revenue == 150.0
+    assert summary.monthly_revenue_at_risk == 100.0
+
+
+def test_summary_monthly_revenue_at_risk_is_zero_when_empty(
+    db_session: Session,
+) -> None:
+    service = AnalyticsService(
+        AnalyticsRepository(db_session)
+    )
+
+    summary = service.get_summary()
+
+    assert summary.monthly_revenue_at_risk == 0.0

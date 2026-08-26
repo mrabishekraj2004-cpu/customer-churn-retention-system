@@ -363,3 +363,92 @@ def test_total_estimated_cost_is_zero_when_database_is_empty(
     analytics = AnalyticsRepository(db_session)
 
     assert analytics.get_total_estimated_cost() == 0.0
+
+
+def test_get_monthly_revenue_at_risk(
+    db_session: Session,
+) -> None:
+    customers = CustomerRepository(db_session)
+    predictions = PredictionRepository(db_session)
+    analytics = AnalyticsRepository(db_session)
+
+    high_risk_customer = customers.create(
+        customer_id="REVENUE-RISK-001",
+        customer_data=customer_data(
+            monthly_charges=100.0,
+        ),
+    )
+
+    low_risk_customer = customers.create(
+        customer_id="REVENUE-RISK-002",
+        customer_data=customer_data(
+            monthly_charges=50.0,
+        ),
+    )
+
+    predictions.create(
+        customer_id=high_risk_customer.id,
+        churn_probability=0.90,
+        risk_level="critical",
+        retention_action_required=True,
+        operating_threshold=0.80,
+        model_version="1.0.0",
+    )
+
+    predictions.create(
+        customer_id=low_risk_customer.id,
+        churn_probability=0.20,
+        risk_level="low",
+        retention_action_required=False,
+        operating_threshold=0.80,
+        model_version="1.0.0",
+    )
+
+    result = analytics.get_monthly_revenue_at_risk()
+
+    assert result == 100.0
+
+
+def test_monthly_revenue_at_risk_uses_latest_prediction(
+    db_session: Session,
+) -> None:
+    customers = CustomerRepository(db_session)
+    predictions = PredictionRepository(db_session)
+    analytics = AnalyticsRepository(db_session)
+
+    customer = customers.create(
+        customer_id="REVENUE-RISK-LATEST-001",
+        customer_data=customer_data(
+            monthly_charges=75.0,
+        ),
+    )
+
+    predictions.create(
+        customer_id=customer.id,
+        churn_probability=0.90,
+        risk_level="critical",
+        retention_action_required=True,
+        operating_threshold=0.80,
+        model_version="1.0.0",
+    )
+
+    predictions.create(
+        customer_id=customer.id,
+        churn_probability=0.20,
+        risk_level="low",
+        retention_action_required=False,
+        operating_threshold=0.80,
+        model_version="1.0.0",
+    )
+
+    result = analytics.get_monthly_revenue_at_risk()
+
+    assert result == 0.0
+
+
+def test_monthly_revenue_at_risk_is_zero_when_database_is_empty(
+    db_session: Session,
+) -> None:
+    analytics = AnalyticsRepository(db_session)
+
+    assert analytics.get_monthly_revenue_at_risk() == 0.0

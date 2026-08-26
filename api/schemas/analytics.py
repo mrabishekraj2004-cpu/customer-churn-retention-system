@@ -25,6 +25,7 @@ class RetentionOutcomeMetricsResponse(BaseModel):
 class AnalyticsSummaryResponse(BaseModel):
     total_customers: int
     total_monthly_revenue: float
+    monthly_revenue_at_risk: float
 
     customers_with_predictions: int
     high_risk_customers: int

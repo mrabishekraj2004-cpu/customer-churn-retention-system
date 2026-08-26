@@ -8,6 +8,7 @@ from src.database.repositories import AnalyticsRepository
 class AnalyticsSummary:
     total_customers: int
     total_monthly_revenue: float
+    monthly_revenue_at_risk: float
 
     customers_with_predictions: int
     high_risk_customers: int
@@ -89,6 +90,7 @@ class AnalyticsService:
         return AnalyticsSummary(
             total_customers=self.repository.get_total_customers(),
             total_monthly_revenue=(self.repository.get_total_monthly_revenue()),
+            monthly_revenue_at_risk=(self.repository.get_monthly_revenue_at_risk()),
             customers_with_predictions=customers_with_predictions,
             high_risk_customers=high_risk_customers,
             average_churn_probability=average_churn_probability,
