@@ -14,6 +14,7 @@ from api.routes.prediction import router as prediction_router
 from api.routes.prediction_history import router as prediction_history_router
 from api.routes.retention_action import router as retention_action_router
 from src.config import settings
+from src.database.initialization import initialize_database
 from src.logging_config import configure_logging
 
 configure_logging()
@@ -23,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Log application startup and shutdown."""
+    """Initialize dependencies and log application lifecycle events."""
 
     logger.info(
         "Starting %s version %s in %s environment",
@@ -31,6 +32,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         settings.app_version,
         settings.environment,
     )
+
+    initialize_database()
 
     yield
 

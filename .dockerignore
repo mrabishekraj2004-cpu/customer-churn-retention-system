@@ -1,0 +1,55 @@
+# Git
+.git
+.gitignore
+.github
+.gitlab-ci.yml
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment / secrets
+.env
+.env.local
+
+# Testing and tooling
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+tests/
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Local database
+*.db
+*.sqlite
+*.sqlite3
+
+# Local datasets
+data/
+
+# Frontend
+node_modules/
+frontend/
+
+# Documentation and local development files
+README.md

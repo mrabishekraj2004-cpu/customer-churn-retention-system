@@ -6,6 +6,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from src.database.initialization import get_missing_tables
 from src.database.session import get_db
 
 router = APIRouter(tags=["health"])
@@ -32,6 +33,20 @@ def readiness_check(
 
     try:
         db.execute(text("SELECT 1"))
+
+        missing_tables = get_missing_tables()
+
+        if missing_tables:
+            return JSONResponse(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                content={
+                    "status": "not_ready",
+                    "service": "customer-churn-api",
+                    "database": "schema_incomplete",
+                    "missing_tables": missing_tables,
+                },
+            )
+
     except SQLAlchemyError:
         return JSONResponse(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
