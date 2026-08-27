@@ -20,6 +20,16 @@ class Settings(BaseSettings):
 
     database_url: str = DEFAULT_DATABASE_URL
 
+    cors_origins: str = "http://localhost:3000,http://localhost:5173"
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        """Return configured CORS origins as a normalized list."""
+
+        return [
+            origin.strip() for origin in self.cors_origins.split(",") if origin.strip()
+        ]
+
     model_config = SettingsConfigDict(
         env_file=ENV_FILE,
         env_file_encoding="utf-8",

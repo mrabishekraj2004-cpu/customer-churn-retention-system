@@ -24,6 +24,10 @@ def test_default_settings() -> None:
     assert settings.environment == "development"
     assert settings.log_level == "INFO"
     assert settings.database_url == DEFAULT_DATABASE_URL
+    assert settings.cors_origin_list == [
+        "http://localhost:3000",
+        "http://localhost:5173",
+    ]
 
 
 def test_settings_can_be_overridden_by_environment(
@@ -41,12 +45,20 @@ def test_settings_can_be_overridden_by_environment(
         "LOG_LEVEL",
         "DEBUG",
     )
+    monkeypatch.setenv(
+        "CORS_ORIGINS",
+        "https://frontend.example.com, https://admin.example.com",
+    )
 
     settings = Settings(_env_file=None)
 
     assert settings.database_url == "sqlite:///test_override.db"
     assert settings.environment == "test"
     assert settings.log_level == "DEBUG"
+    assert settings.cors_origin_list == [
+        "https://frontend.example.com",
+        "https://admin.example.com",
+    ]
 
 
 def test_get_settings_is_cached() -> None:
