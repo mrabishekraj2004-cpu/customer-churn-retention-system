@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.exception_handlers import register_exception_handlers
+from api.middleware.request_logging import log_requests
 from api.routes.analytics import router as analytics_router
 from api.routes.customer import router as customer_router
 from api.routes.health import router as health_router
@@ -47,6 +48,8 @@ app = FastAPI(
     version=settings.app_version,
     lifespan=lifespan,
 )
+
+app.middleware("http")(log_requests)
 
 app.add_middleware(
     CORSMiddleware,
