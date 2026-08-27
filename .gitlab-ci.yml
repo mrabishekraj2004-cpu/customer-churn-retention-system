@@ -1,5 +1,6 @@
 stages:
   - test
+  - build
 
 default:
   image: python:3.14
@@ -18,3 +19,17 @@ pytest:
   stage: test
   script:
     - pytest -q
+
+docker:
+  stage: build
+  image: docker:29.0.1-cli
+  services:
+    - name: docker:29.0.1-dind
+      alias: docker
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  before_script:
+    - docker version
+  script:
+    - docker build -t customer-churn-api:ci .
