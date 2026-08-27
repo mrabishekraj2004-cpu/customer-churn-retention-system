@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from api.exception_handlers import register_exception_handlers
 from api.routes.analytics import router as analytics_router
 from api.routes.customer import router as customer_router
 from api.routes.health import router as health_router
@@ -45,6 +46,8 @@ app = FastAPI(
     version=settings.app_version,
     lifespan=lifespan,
 )
+
+register_exception_handlers(app)
 
 app.include_router(health_router)
 app.include_router(prediction_router)
