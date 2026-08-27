@@ -22,6 +22,7 @@ def test_default_settings() -> None:
     assert settings.app_name == "Customer Churn Prediction API"
     assert settings.app_version == "1.0.0"
     assert settings.environment == "development"
+    assert settings.log_level == "INFO"
     assert settings.database_url == DEFAULT_DATABASE_URL
 
 
@@ -36,11 +37,16 @@ def test_settings_can_be_overridden_by_environment(
         "ENVIRONMENT",
         "test",
     )
+    monkeypatch.setenv(
+        "LOG_LEVEL",
+        "DEBUG",
+    )
 
     settings = Settings(_env_file=None)
 
     assert settings.database_url == "sqlite:///test_override.db"
     assert settings.environment == "test"
+    assert settings.log_level == "DEBUG"
 
 
 def test_get_settings_is_cached() -> None:

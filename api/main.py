@@ -1,3 +1,7 @@
+import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
 from api.routes.analytics import router as analytics_router
@@ -7,6 +11,31 @@ from api.routes.prediction import router as prediction_router
 from api.routes.prediction_history import router as prediction_history_router
 from api.routes.retention_action import router as retention_action_router
 from src.config import settings
+from src.logging_config import configure_logging
+
+configure_logging()
+
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """Log application startup and shutdown."""
+
+    logger.info(
+        "Starting %s version %s in %s environment",
+        settings.app_name,
+        settings.app_version,
+        settings.environment,
+    )
+
+    yield
+
+    logger.info(
+        "Shutting down %s",
+        settings.app_name,
+    )
+
 
 app = FastAPI(
     title=settings.app_name,
@@ -14,6 +43,7 @@ app = FastAPI(
         "API for predicting customer churn risk and supporting retention decisions."
     ),
     version=settings.app_version,
+    lifespan=lifespan,
 )
 
 app.include_router(health_router)
