@@ -51,6 +51,9 @@ frontend/build/
 models/*.pkl
 models/*.joblib
 
+# Keep the production churn model available for deployment builds
+!models/churn_pipeline.joblib
+
 # Local database
 *.db
 *.sqlite
