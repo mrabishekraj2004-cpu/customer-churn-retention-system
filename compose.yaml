@@ -1,0 +1,27 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    image: customer-churn-api:1.0.0
+    container_name: customer-churn-api
+
+    ports:
+      - "8000:8000"
+
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: sqlite:////app/data/customer_churn.db
+      MODEL_PATH: /app/models/churn_pipeline.joblib
+      MODEL_METADATA_PATH: /app/models/churn_pipeline_metadata.json
+      LOG_LEVEL: INFO
+
+    volumes:
+      - customer_churn_data:/app/data
+
+    restart: unless-stopped
+
+volumes:
+  customer_churn_data:
+    name: customer-churn-data
