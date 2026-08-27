@@ -1,5 +1,9 @@
+from pathlib import Path
+
 from src.config import (
     DEFAULT_DATABASE_URL,
+    DEFAULT_MODEL_METADATA_PATH,
+    DEFAULT_MODEL_PATH,
     ENV_FILE,
     PROJECT_ROOT,
     Settings,
@@ -23,7 +27,14 @@ def test_default_settings() -> None:
     assert settings.app_version == "1.0.0"
     assert settings.environment == "development"
     assert settings.log_level == "INFO"
+
     assert settings.database_url == DEFAULT_DATABASE_URL
+
+    assert settings.model_path == DEFAULT_MODEL_PATH
+    assert settings.model_metadata_path == DEFAULT_MODEL_METADATA_PATH
+
+    assert settings.cors_origins == ("http://localhost:3000,http://localhost:5173")
+
     assert settings.cors_origin_list == [
         "http://localhost:3000",
         "http://localhost:5173",
@@ -37,17 +48,30 @@ def test_settings_can_be_overridden_by_environment(
         "DATABASE_URL",
         "sqlite:///test_override.db",
     )
+
     monkeypatch.setenv(
         "ENVIRONMENT",
         "test",
     )
+
     monkeypatch.setenv(
         "LOG_LEVEL",
         "DEBUG",
     )
+
+    monkeypatch.setenv(
+        "MODEL_PATH",
+        "models/custom_model.joblib",
+    )
+
+    monkeypatch.setenv(
+        "MODEL_METADATA_PATH",
+        "models/custom_metadata.json",
+    )
+
     monkeypatch.setenv(
         "CORS_ORIGINS",
-        "https://frontend.example.com, https://admin.example.com",
+        "https://example.com,https://admin.example.com",
     )
 
     settings = Settings(_env_file=None)
@@ -55,9 +79,28 @@ def test_settings_can_be_overridden_by_environment(
     assert settings.database_url == "sqlite:///test_override.db"
     assert settings.environment == "test"
     assert settings.log_level == "DEBUG"
+
+    assert settings.model_path == Path("models/custom_model.joblib")
+
+    assert settings.model_metadata_path == Path("models/custom_metadata.json")
+
+    assert settings.cors_origins == ("https://example.com,https://admin.example.com")
+
     assert settings.cors_origin_list == [
-        "https://frontend.example.com",
+        "https://example.com",
         "https://admin.example.com",
+    ]
+
+
+def test_cors_origin_list_removes_whitespace_and_empty_values() -> None:
+    settings = Settings(
+        _env_file=None,
+        cors_origins=(" http://localhost:3000, http://localhost:5173, , "),
+    )
+
+    assert settings.cors_origin_list == [
+        "http://localhost:3000",
+        "http://localhost:5173",
     ]
 
 

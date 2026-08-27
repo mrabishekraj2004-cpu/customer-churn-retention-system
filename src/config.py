@@ -6,8 +6,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 ENV_FILE = PROJECT_ROOT / ".env"
 DATABASE_FILE = PROJECT_ROOT / "customer_churn.db"
+MODEL_DIR = PROJECT_ROOT / "models"
 
 DEFAULT_DATABASE_URL = f"sqlite:///{DATABASE_FILE.as_posix()}"
+DEFAULT_MODEL_PATH = MODEL_DIR / "churn_pipeline.joblib"
+DEFAULT_MODEL_METADATA_PATH = MODEL_DIR / "churn_pipeline_metadata.json"
 
 
 class Settings(BaseSettings):
@@ -19,6 +22,9 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     database_url: str = DEFAULT_DATABASE_URL
+
+    model_path: Path = DEFAULT_MODEL_PATH
+    model_metadata_path: Path = DEFAULT_MODEL_METADATA_PATH
 
     cors_origins: str = "http://localhost:3000,http://localhost:5173"
 

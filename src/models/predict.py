@@ -5,21 +5,20 @@ from typing import Any
 import joblib
 import pandas as pd
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-MODEL_DIR = PROJECT_ROOT / "models"
-
-MODEL_PATH = MODEL_DIR / "churn_pipeline.joblib"
-METADATA_PATH = MODEL_DIR / "churn_pipeline_metadata.json"
+from src.config import settings
 
 
 class PredictionService:
     def __init__(
         self,
-        model_path: Path = MODEL_PATH,
-        metadata_path: Path = METADATA_PATH,
+        model_path: Path | None = None,
+        metadata_path: Path | None = None,
     ) -> None:
-        self.model = self._load_model(model_path)
-        self.metadata = self._load_metadata(metadata_path)
+        resolved_model_path = model_path or settings.model_path
+        resolved_metadata_path = metadata_path or settings.model_metadata_path
+
+        self.model = self._load_model(resolved_model_path)
+        self.metadata = self._load_metadata(resolved_metadata_path)
 
         self.threshold = float(self.metadata["operating_threshold"])
 
