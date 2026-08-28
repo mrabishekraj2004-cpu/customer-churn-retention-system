@@ -5,6 +5,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+RUN mkdir -p /app/data
+
 COPY requirements.txt .
 
 RUN python -m pip install --no-cache-dir --upgrade pip \
