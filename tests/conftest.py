@@ -7,8 +7,36 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from api.main import app
 from api.routes.prediction import get_prediction_service
+from src.config import settings
 from src.database import models  # noqa: F401
+from src.database.models import UserRole
+from src.database.repositories import UserRepository
 from src.database.session import Base, get_db
+from src.security.password import hash_password
+from src.security.tokens import create_access_token
+
+
+@pytest.fixture(autouse=True)
+def configure_test_security(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Use deterministic JWT configuration during tests."""
+
+    monkeypatch.setattr(
+        settings,
+        "jwt_secret_key",
+        "test-jwt-secret-key-that-is-at-least-32-bytes",
+    )
+    monkeypatch.setattr(
+        settings,
+        "jwt_algorithm",
+        "HS256",
+    )
+    monkeypatch.setattr(
+        settings,
+        "access_token_expire_minutes",
+        15,
+    )
 
 
 class FakePredictionService:
@@ -97,6 +125,37 @@ def client(
         yield test_client
 
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def authenticated_client(
+    client: TestClient,
+    db_session: Session,
+) -> TestClient:
+    """Return a client authenticated as an administrator."""
+
+    repository = UserRepository(db_session)
+
+    user = repository.create(
+        email="test-admin@example.com",
+        password_hash=hash_password(
+            "Strong-Test-Password-123!"
+        ),
+        role=UserRole.ADMIN,
+    )
+
+    token = create_access_token(
+        subject=str(user.id),
+        role=user.role,
+    )
+
+    client.headers.update(
+        {
+            "Authorization": f"Bearer {token}",
+        }
+    )
+
+    return client
 
 
 @pytest.fixture

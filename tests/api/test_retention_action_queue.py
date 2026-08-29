@@ -2,10 +2,10 @@ from fastapi.testclient import TestClient
 
 
 def create_retention_action(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
 ) -> int:
-    response = client.post(
+    response = authenticated_client.post(
         "/api/v1/predict",
         json=customer_payload,
     )
@@ -24,15 +24,15 @@ def create_retention_action(
 
 
 def test_get_retention_actions_returns_action_list(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
 ) -> None:
     action_id = create_retention_action(
-        client,
+        authenticated_client,
         customer_payload,
     )
 
-    response = client.get("/api/v1/retention-actions")
+    response = authenticated_client.get("/api/v1/retention-actions")
 
     assert response.status_code == 200
 
@@ -51,7 +51,7 @@ def test_get_retention_actions_returns_action_list(
 
 
 def test_get_retention_actions_filters_by_status(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
 ) -> None:
     first_payload = customer_payload.copy()
@@ -61,23 +61,23 @@ def test_get_retention_actions_filters_by_status(
     second_payload["customer_id"] = "ACTION-FILTER-002"
 
     recommended_action_id = create_retention_action(
-        client,
+        authenticated_client,
         first_payload,
     )
 
     completed_action_id = create_retention_action(
-        client,
+        authenticated_client,
         second_payload,
     )
 
-    response = client.patch(
+    response = authenticated_client.patch(
         f"/api/v1/retention-actions/{completed_action_id}",
         json={"status": "in_progress"},
     )
 
     assert response.status_code == 200
 
-    response = client.patch(
+    response = authenticated_client.patch(
         f"/api/v1/retention-actions/{completed_action_id}",
         json={
             "status": "completed",
@@ -87,7 +87,7 @@ def test_get_retention_actions_filters_by_status(
 
     assert response.status_code == 200
 
-    response = client.get("/api/v1/retention-actions?status=recommended")
+    response = authenticated_client.get("/api/v1/retention-actions?status=recommended")
 
     assert response.status_code == 200
 
@@ -100,7 +100,7 @@ def test_get_retention_actions_filters_by_status(
 
 
 def test_get_retention_actions_filters_completed_status(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
 ) -> None:
     first_payload = customer_payload.copy()
@@ -110,23 +110,23 @@ def test_get_retention_actions_filters_completed_status(
     second_payload["customer_id"] = "ACTION-COMPLETED-002"
 
     create_retention_action(
-        client,
+        authenticated_client,
         first_payload,
     )
 
     completed_action_id = create_retention_action(
-        client,
+        authenticated_client,
         second_payload,
     )
 
-    response = client.patch(
+    response = authenticated_client.patch(
         f"/api/v1/retention-actions/{completed_action_id}",
         json={"status": "in_progress"},
     )
 
     assert response.status_code == 200
 
-    response = client.patch(
+    response = authenticated_client.patch(
         f"/api/v1/retention-actions/{completed_action_id}",
         json={
             "status": "completed",
@@ -136,7 +136,7 @@ def test_get_retention_actions_filters_completed_status(
 
     assert response.status_code == 200
 
-    response = client.get("/api/v1/retention-actions?status=completed")
+    response = authenticated_client.get("/api/v1/retention-actions?status=completed")
 
     assert response.status_code == 200
 
@@ -153,7 +153,7 @@ def test_get_retention_actions_filters_completed_status(
 
 
 def test_get_retention_actions_respects_limit_and_offset(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
 ) -> None:
     for index in range(3):
@@ -161,11 +161,11 @@ def test_get_retention_actions_respects_limit_and_offset(
         payload["customer_id"] = f"ACTION-PAGE-{index}"
 
         create_retention_action(
-            client,
+            authenticated_client,
             payload,
         )
 
-    response = client.get("/api/v1/retention-actions?limit=2&offset=1")
+    response = authenticated_client.get("/api/v1/retention-actions?limit=2&offset=1")
 
     assert response.status_code == 200
 
@@ -178,32 +178,32 @@ def test_get_retention_actions_respects_limit_and_offset(
 
 
 def test_get_retention_actions_rejects_zero_limit(
-    client: TestClient,
+    authenticated_client: TestClient,
 ) -> None:
-    response = client.get("/api/v1/retention-actions?limit=0")
+    response = authenticated_client.get("/api/v1/retention-actions?limit=0")
 
     assert response.status_code == 422
 
 
 def test_get_retention_actions_rejects_negative_offset(
-    client: TestClient,
+    authenticated_client: TestClient,
 ) -> None:
-    response = client.get("/api/v1/retention-actions?offset=-1")
+    response = authenticated_client.get("/api/v1/retention-actions?offset=-1")
 
     assert response.status_code == 422
 
 
 def test_get_retention_actions_rejects_limit_above_maximum(
-    client: TestClient,
+    authenticated_client: TestClient,
 ) -> None:
-    response = client.get("/api/v1/retention-actions?limit=501")
+    response = authenticated_client.get("/api/v1/retention-actions?limit=501")
 
     assert response.status_code == 422
 
 
 def test_get_retention_actions_rejects_invalid_status(
-    client: TestClient,
+    authenticated_client: TestClient,
 ) -> None:
-    response = client.get("/api/v1/retention-actions?status=invalid-status")
+    response = authenticated_client.get("/api/v1/retention-actions?status=invalid-status")
 
     assert response.status_code == 422

@@ -2,17 +2,17 @@ from fastapi.testclient import TestClient
 
 
 def test_prediction_history_returns_saved_prediction(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
 ) -> None:
-    prediction_response = client.post(
+    prediction_response = authenticated_client.post(
         "/api/v1/predict",
         json=customer_payload,
     )
 
     assert prediction_response.status_code == 200
 
-    response = client.get(
+    response = authenticated_client.get(
         f"/api/v1/customers/{customer_payload['customer_id']}/predictions"
     )
 
@@ -43,9 +43,9 @@ def test_prediction_history_returns_saved_prediction(
 
 
 def test_prediction_history_returns_404_for_unknown_customer(
-    client: TestClient,
+    authenticated_client: TestClient,
 ) -> None:
-    response = client.get("/api/v1/customers/DOES-NOT-EXIST/predictions")
+    response = authenticated_client.get("/api/v1/customers/DOES-NOT-EXIST/predictions")
 
     assert response.status_code == 404
 

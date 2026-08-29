@@ -2,10 +2,10 @@ from fastapi.testclient import TestClient
 
 
 def create_customer_with_prediction(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
 ) -> dict:
-    response = client.post(
+    response = authenticated_client.post(
         "/api/v1/predict",
         json=customer_payload,
     )
@@ -16,15 +16,15 @@ def create_customer_with_prediction(
 
 
 def test_get_customers_returns_customer_list(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
 ) -> None:
     prediction = create_customer_with_prediction(
-        client,
+        authenticated_client,
         customer_payload,
     )
 
-    response = client.get("/api/v1/customers")
+    response = authenticated_client.get("/api/v1/customers")
 
     assert response.status_code == 200
 
@@ -47,17 +47,17 @@ def test_get_customers_returns_customer_list(
 
 
 def test_get_customer_detail(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
 ) -> None:
     create_customer_with_prediction(
-        client,
+        authenticated_client,
         customer_payload,
     )
 
     customer_id = customer_payload["customer_id"]
 
-    response = client.get(f"/api/v1/customers/{customer_id}")
+    response = authenticated_client.get(f"/api/v1/customers/{customer_id}")
 
     assert response.status_code == 200
 
@@ -74,11 +74,11 @@ def test_get_customer_detail(
 
 
 def test_customer_detail_contains_latest_prediction(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
 ) -> None:
     first_prediction = create_customer_with_prediction(
-        client,
+        authenticated_client,
         customer_payload,
     )
 
@@ -86,13 +86,13 @@ def test_customer_detail_contains_latest_prediction(
     updated_payload["MonthlyCharges"] = customer_payload["MonthlyCharges"] + 10
 
     second_prediction = create_customer_with_prediction(
-        client,
+        authenticated_client,
         updated_payload,
     )
 
     customer_id = customer_payload["customer_id"]
 
-    response = client.get(f"/api/v1/customers/{customer_id}")
+    response = authenticated_client.get(f"/api/v1/customers/{customer_id}")
 
     assert response.status_code == 200
 
@@ -108,16 +108,16 @@ def test_customer_detail_contains_latest_prediction(
 
 
 def test_unknown_customer_returns_404(
-    client: TestClient,
+    authenticated_client: TestClient,
 ) -> None:
-    response = client.get("/api/v1/customers/UNKNOWN-CUSTOMER")
+    response = authenticated_client.get("/api/v1/customers/UNKNOWN-CUSTOMER")
 
     assert response.status_code == 404
     assert response.json()["detail"] == ("Customer not found: UNKNOWN-CUSTOMER")
 
 
 def test_customer_list_respects_limit_and_offset(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
 ) -> None:
     first_payload = customer_payload.copy()
@@ -130,19 +130,19 @@ def test_customer_list_respects_limit_and_offset(
     third_payload["customer_id"] = "API-PAGE-003"
 
     create_customer_with_prediction(
-        client,
+        authenticated_client,
         first_payload,
     )
     create_customer_with_prediction(
-        client,
+        authenticated_client,
         second_payload,
     )
     create_customer_with_prediction(
-        client,
+        authenticated_client,
         third_payload,
     )
 
-    response = client.get("/api/v1/customers?limit=2&offset=0")
+    response = authenticated_client.get("/api/v1/customers?limit=2&offset=0")
 
     assert response.status_code == 200
 
@@ -155,7 +155,7 @@ def test_customer_list_respects_limit_and_offset(
 
 
 def test_customer_list_with_offset(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
 ) -> None:
     for index in range(3):
@@ -163,11 +163,11 @@ def test_customer_list_with_offset(
         payload["customer_id"] = f"API-OFFSET-{index}"
 
         create_customer_with_prediction(
-            client,
+            authenticated_client,
             payload,
         )
 
-    response = client.get("/api/v1/customers?limit=2&offset=2")
+    response = authenticated_client.get("/api/v1/customers?limit=2&offset=2")
 
     assert response.status_code == 200
 
@@ -180,42 +180,42 @@ def test_customer_list_with_offset(
 
 
 def test_customer_list_rejects_zero_limit(
-    client: TestClient,
+    authenticated_client: TestClient,
 ) -> None:
-    response = client.get("/api/v1/customers?limit=0")
+    response = authenticated_client.get("/api/v1/customers?limit=0")
 
     assert response.status_code == 422
 
 
 def test_customer_list_rejects_negative_offset(
-    client: TestClient,
+    authenticated_client: TestClient,
 ) -> None:
-    response = client.get("/api/v1/customers?offset=-1")
+    response = authenticated_client.get("/api/v1/customers?offset=-1")
 
     assert response.status_code == 422
 
 
 def test_customer_list_rejects_limit_above_maximum(
-    client: TestClient,
+    authenticated_client: TestClient,
 ) -> None:
-    response = client.get("/api/v1/customers?limit=501")
+    response = authenticated_client.get("/api/v1/customers?limit=501")
 
     assert response.status_code == 422
 
 
 def test_high_risk_endpoint_returns_actionable_customer(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
 ) -> None:
     payload = customer_payload.copy()
     payload["customer_id"] = "API-HIGH-RISK-001"
 
     prediction = create_customer_with_prediction(
-        client,
+        authenticated_client,
         payload,
     )
 
-    response = client.get("/api/v1/customers/high-risk")
+    response = authenticated_client.get("/api/v1/customers/high-risk")
 
     assert response.status_code == 200
 
@@ -236,7 +236,7 @@ def test_high_risk_endpoint_returns_actionable_customer(
 
 
 def test_high_risk_endpoint_excludes_non_actionable_customer(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
 ) -> None:
     payload = customer_payload.copy()
@@ -252,11 +252,11 @@ def test_high_risk_endpoint_excludes_non_actionable_customer(
     payload["TotalCharges"] = 1800.0
 
     prediction = create_customer_with_prediction(
-        client,
+        authenticated_client,
         payload,
     )
 
-    response = client.get("/api/v1/customers/high-risk")
+    response = authenticated_client.get("/api/v1/customers/high-risk")
 
     assert response.status_code == 200
 
@@ -269,14 +269,14 @@ def test_high_risk_endpoint_excludes_non_actionable_customer(
 
 
 def test_high_risk_endpoint_uses_latest_prediction(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
 ) -> None:
     payload = customer_payload.copy()
     payload["customer_id"] = "API-LATEST-RISK-001"
 
     first_prediction = create_customer_with_prediction(
-        client,
+        authenticated_client,
         payload,
     )
 
@@ -291,11 +291,11 @@ def test_high_risk_endpoint_uses_latest_prediction(
     updated_payload["TotalCharges"] = 1800.0
 
     second_prediction = create_customer_with_prediction(
-        client,
+        authenticated_client,
         updated_payload,
     )
 
-    response = client.get("/api/v1/customers/high-risk")
+    response = authenticated_client.get("/api/v1/customers/high-risk")
 
     assert response.status_code == 200
 
@@ -320,7 +320,7 @@ def test_high_risk_endpoint_uses_latest_prediction(
 
 
 def test_high_risk_endpoint_respects_limit_and_offset(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
 ) -> None:
     for index in range(3):
@@ -328,11 +328,11 @@ def test_high_risk_endpoint_respects_limit_and_offset(
         payload["customer_id"] = f"API-HIGH-RISK-PAGE-{index}"
 
         create_customer_with_prediction(
-            client,
+            authenticated_client,
             payload,
         )
 
-    response = client.get("/api/v1/customers/high-risk?limit=1&offset=1")
+    response = authenticated_client.get("/api/v1/customers/high-risk?limit=1&offset=1")
 
     assert response.status_code == 200
 
@@ -344,16 +344,16 @@ def test_high_risk_endpoint_respects_limit_and_offset(
 
 
 def test_high_risk_endpoint_rejects_zero_limit(
-    client: TestClient,
+    authenticated_client: TestClient,
 ) -> None:
-    response = client.get("/api/v1/customers/high-risk?limit=0")
+    response = authenticated_client.get("/api/v1/customers/high-risk?limit=0")
 
     assert response.status_code == 422
 
 
 def test_high_risk_endpoint_rejects_negative_offset(
-    client: TestClient,
+    authenticated_client: TestClient,
 ) -> None:
-    response = client.get("/api/v1/customers/high-risk?offset=-1")
+    response = authenticated_client.get("/api/v1/customers/high-risk?offset=-1")
 
     assert response.status_code == 422

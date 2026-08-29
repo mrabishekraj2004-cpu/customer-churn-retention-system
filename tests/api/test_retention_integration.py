@@ -5,11 +5,11 @@ from src.database.repositories import RetentionActionRepository
 
 
 def test_high_risk_prediction_creates_retention_action(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
     db_session: Session,
 ) -> None:
-    response = client.post(
+    response = authenticated_client.post(
         "/api/v1/predict",
         json=customer_payload,
     )
@@ -44,10 +44,10 @@ def test_high_risk_prediction_creates_retention_action(
 
 
 def test_retention_recommendation_contains_risk_factors(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
 ) -> None:
-    response = client.post(
+    response = authenticated_client.post(
         "/api/v1/predict",
         json=customer_payload,
     )

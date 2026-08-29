@@ -4,10 +4,10 @@ PREDICTION_URL = "/api/v1/predict"
 
 
 def test_prediction_returns_valid_response(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
 ) -> None:
-    response = client.post(
+    response = authenticated_client.post(
         PREDICTION_URL,
         json=customer_payload,
     )
@@ -35,12 +35,12 @@ def test_prediction_returns_valid_response(
 
 
 def test_missing_feature_returns_validation_error(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
 ) -> None:
     customer_payload.pop("Contract")
 
-    response = client.post(
+    response = authenticated_client.post(
         PREDICTION_URL,
         json=customer_payload,
     )
@@ -49,12 +49,12 @@ def test_missing_feature_returns_validation_error(
 
 
 def test_invalid_contract_returns_validation_error(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
 ) -> None:
     customer_payload["Contract"] = "Five year"
 
-    response = client.post(
+    response = authenticated_client.post(
         PREDICTION_URL,
         json=customer_payload,
     )
@@ -63,12 +63,12 @@ def test_invalid_contract_returns_validation_error(
 
 
 def test_negative_tenure_returns_validation_error(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
 ) -> None:
     customer_payload["tenure"] = -1
 
-    response = client.post(
+    response = authenticated_client.post(
         PREDICTION_URL,
         json=customer_payload,
     )
@@ -77,12 +77,12 @@ def test_negative_tenure_returns_validation_error(
 
 
 def test_negative_monthly_charges_returns_validation_error(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
 ) -> None:
     customer_payload["MonthlyCharges"] = -10
 
-    response = client.post(
+    response = authenticated_client.post(
         PREDICTION_URL,
         json=customer_payload,
     )

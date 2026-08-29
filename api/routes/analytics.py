@@ -9,13 +9,23 @@ from api.schemas.analytics import (
     RetentionOutcomeMetricsResponse,
     RiskDistributionResponse,
 )
+from src.database.models import UserRole
 from src.database.repositories import AnalyticsRepository
 from src.database.session import get_db
+from src.security.authorization import require_roles
 from src.services.analytics_service import AnalyticsService
 
 router = APIRouter(
     prefix="/api/v1/analytics",
     tags=["analytics"],
+    dependencies=[
+        Depends(
+            require_roles(
+                UserRole.ADMIN,
+                UserRole.ANALYST,
+            )
+        )
+    ],
 )
 
 

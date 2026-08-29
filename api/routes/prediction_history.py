@@ -4,7 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from api.schemas.prediction_history import PredictionHistoryResponse
+from src.database.models import UserRole
 from src.database.session import get_db
+from src.security.authorization import require_roles
 from src.services.prediction_history_service import (
     CustomerNotFoundError,
     PredictionHistoryService,
@@ -13,6 +15,15 @@ from src.services.prediction_history_service import (
 router = APIRouter(
     prefix="/api/v1/customers",
     tags=["predictions"],
+    dependencies=[
+        Depends(
+            require_roles(
+                UserRole.ADMIN,
+                UserRole.ANALYST,
+                UserRole.RETENTION_AGENT,
+            )
+        )
+    ],
 )
 
 

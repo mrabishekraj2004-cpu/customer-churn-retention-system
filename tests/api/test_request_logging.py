@@ -4,14 +4,14 @@ from fastapi.testclient import TestClient
 
 
 def test_request_logging_records_method_path_status_and_duration(
-    client: TestClient,
+    authenticated_client: TestClient,
     caplog,
 ) -> None:
     with caplog.at_level(
         logging.INFO,
         logger="api.middleware.request_logging",
     ):
-        response = client.get("/health")
+        response = authenticated_client.get("/health")
 
     assert response.status_code == 200
 
@@ -25,7 +25,7 @@ def test_request_logging_records_method_path_status_and_duration(
 
 
 def test_request_logging_does_not_log_query_values(
-    client: TestClient,
+    authenticated_client: TestClient,
     caplog,
 ) -> None:
     sensitive_value = "do-not-log-this-value"
@@ -34,7 +34,7 @@ def test_request_logging_does_not_log_query_values(
         logging.INFO,
         logger="api.middleware.request_logging",
     ):
-        response = client.get(
+        response = authenticated_client.get(
             "/health",
             params={
                 "token": sensitive_value,
@@ -54,7 +54,7 @@ def test_request_logging_does_not_log_query_values(
 
 
 def test_request_logging_does_not_log_request_body(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
     caplog,
 ) -> None:
@@ -65,7 +65,7 @@ def test_request_logging_does_not_log_request_body(
         logging.INFO,
         logger="api.middleware.request_logging",
     ):
-        response = client.post(
+        response = authenticated_client.post(
             "/api/v1/predict",
             json=customer_payload,
         )

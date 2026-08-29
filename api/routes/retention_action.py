@@ -9,8 +9,10 @@ from api.schemas.retention_action import (
     RetentionActionStatusUpdate,
     RetentionStatus,
 )
+from src.database.models import UserRole
 from src.database.repositories import RetentionActionRepository
 from src.database.session import get_db
+from src.security.authorization import require_roles
 from src.services.retention_action_service import (
     InvalidRetentionActionUpdateError,
     RetentionActionNotFoundError,
@@ -20,6 +22,15 @@ from src.services.retention_action_service import (
 router = APIRouter(
     prefix="/api/v1/retention-actions",
     tags=["retention-actions"],
+    dependencies=[
+        Depends(
+            require_roles(
+                UserRole.ADMIN,
+                UserRole.ANALYST,
+                UserRole.RETENTION_AGENT,
+            )
+        )
+    ],
 )
 
 
@@ -103,6 +114,14 @@ def get_retention_action(
 @router.patch(
     "/{action_id}",
     response_model=RetentionActionResponse,
+    dependencies=[
+        Depends(
+            require_roles(
+                UserRole.ADMIN,
+                UserRole.RETENTION_AGENT,
+            )
+        )
+    ],
 )
 def update_retention_action(
     action_id: int,

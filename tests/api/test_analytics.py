@@ -2,14 +2,14 @@ from fastapi.testclient import TestClient
 
 
 def create_prediction(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
     customer_id: str,
 ) -> dict:
     payload = customer_payload.copy()
     payload["customer_id"] = customer_id
 
-    response = client.post(
+    response = authenticated_client.post(
         "/api/v1/predict",
         json=payload,
     )
@@ -20,9 +20,9 @@ def create_prediction(
 
 
 def test_analytics_summary_empty_database(
-    client: TestClient,
+    authenticated_client: TestClient,
 ) -> None:
-    response = client.get("/api/v1/analytics/summary")
+    response = authenticated_client.get("/api/v1/analytics/summary")
 
     assert response.status_code == 200
 
@@ -70,16 +70,16 @@ def test_analytics_summary_empty_database(
 
 
 def test_analytics_summary_contains_customer_metrics(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
 ) -> None:
     create_prediction(
-        client,
+        authenticated_client,
         customer_payload,
         "ANALYTICS-CUSTOMER-001",
     )
 
-    response = client.get("/api/v1/analytics/summary")
+    response = authenticated_client.get("/api/v1/analytics/summary")
 
     assert response.status_code == 200
 
@@ -93,16 +93,16 @@ def test_analytics_summary_contains_customer_metrics(
 
 
 def test_analytics_summary_contains_risk_distribution(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
 ) -> None:
     create_prediction(
-        client,
+        authenticated_client,
         customer_payload,
         "ANALYTICS-RISK-001",
     )
 
-    response = client.get("/api/v1/analytics/summary")
+    response = authenticated_client.get("/api/v1/analytics/summary")
 
     assert response.status_code == 200
 
@@ -120,16 +120,16 @@ def test_analytics_summary_contains_risk_distribution(
 
 
 def test_analytics_summary_contains_retention_action_metrics(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
 ) -> None:
     create_prediction(
-        client,
+        authenticated_client,
         customer_payload,
         "ANALYTICS-ACTION-001",
     )
 
-    response = client.get("/api/v1/analytics/summary")
+    response = authenticated_client.get("/api/v1/analytics/summary")
 
     assert response.status_code == 200
 
@@ -147,18 +147,18 @@ def test_analytics_summary_contains_retention_action_metrics(
 
 
 def test_analytics_summary_updates_after_retention_completion(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
 ) -> None:
     prediction_data = create_prediction(
-        client,
+        authenticated_client,
         customer_payload,
         "ANALYTICS-COMPLETED-001",
     )
 
     action_id = prediction_data["retention_recommendation"]["action_id"]
 
-    in_progress_response = client.patch(
+    in_progress_response = authenticated_client.patch(
         f"/api/v1/retention-actions/{action_id}",
         json={
             "status": "in_progress",
@@ -167,7 +167,7 @@ def test_analytics_summary_updates_after_retention_completion(
 
     assert in_progress_response.status_code == 200
 
-    completed_response = client.patch(
+    completed_response = authenticated_client.patch(
         f"/api/v1/retention-actions/{action_id}",
         json={
             "status": "completed",
@@ -177,7 +177,7 @@ def test_analytics_summary_updates_after_retention_completion(
 
     assert completed_response.status_code == 200
 
-    response = client.get("/api/v1/analytics/summary")
+    response = authenticated_client.get("/api/v1/analytics/summary")
 
     assert response.status_code == 200
 
@@ -194,13 +194,13 @@ def test_analytics_summary_updates_after_retention_completion(
 
 
 def test_analytics_summary_uses_latest_prediction_only(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
 ) -> None:
     customer_id = "ANALYTICS-LATEST-001"
 
     first_prediction = create_prediction(
-        client,
+        authenticated_client,
         customer_payload,
         customer_id,
     )
@@ -210,14 +210,14 @@ def test_analytics_summary_uses_latest_prediction_only(
     second_payload = customer_payload.copy()
     second_payload["customer_id"] = customer_id
 
-    second_response = client.post(
+    second_response = authenticated_client.post(
         "/api/v1/predict",
         json=second_payload,
     )
 
     assert second_response.status_code == 200
 
-    response = client.get("/api/v1/analytics/summary")
+    response = authenticated_client.get("/api/v1/analytics/summary")
 
     assert response.status_code == 200
 
@@ -232,7 +232,7 @@ def test_analytics_summary_uses_latest_prediction_only(
 
 
 def test_analytics_summary_contains_monthly_revenue_at_risk(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
 ) -> None:
     high_risk_payload = customer_payload.copy()
@@ -241,7 +241,7 @@ def test_analytics_summary_contains_monthly_revenue_at_risk(
     high_risk_payload["MonthlyCharges"] = 100.0
     high_risk_payload["TotalCharges"] = 1000.0
 
-    response = client.post(
+    response = authenticated_client.post(
         "/api/v1/predict",
         json=high_risk_payload,
     )
@@ -249,7 +249,7 @@ def test_analytics_summary_contains_monthly_revenue_at_risk(
     assert response.status_code == 200
     assert response.json()["retention_action_required"] is True
 
-    summary_response = client.get("/api/v1/analytics/summary")
+    summary_response = authenticated_client.get("/api/v1/analytics/summary")
 
     assert summary_response.status_code == 200
 
@@ -260,9 +260,9 @@ def test_analytics_summary_contains_monthly_revenue_at_risk(
 
 
 def test_analytics_summary_monthly_revenue_at_risk_is_zero_when_empty(
-    client: TestClient,
+    authenticated_client: TestClient,
 ) -> None:
-    response = client.get("/api/v1/analytics/summary")
+    response = authenticated_client.get("/api/v1/analytics/summary")
 
     assert response.status_code == 200
 
@@ -272,7 +272,7 @@ def test_analytics_summary_monthly_revenue_at_risk_is_zero_when_empty(
 
 
 def test_analytics_summary_contains_expected_monthly_revenue_loss(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
 ) -> None:
     high_risk_payload = customer_payload.copy()
@@ -281,7 +281,7 @@ def test_analytics_summary_contains_expected_monthly_revenue_loss(
     high_risk_payload["MonthlyCharges"] = 100.0
     high_risk_payload["TotalCharges"] = 1000.0
 
-    prediction_response = client.post(
+    prediction_response = authenticated_client.post(
         "/api/v1/predict",
         json=high_risk_payload,
     )
@@ -296,7 +296,7 @@ def test_analytics_summary_contains_expected_monthly_revenue_loss(
 
     expected_loss = high_risk_payload["MonthlyCharges"] * churn_probability
 
-    summary_response = client.get("/api/v1/analytics/summary")
+    summary_response = authenticated_client.get("/api/v1/analytics/summary")
 
     assert summary_response.status_code == 200
 
@@ -308,9 +308,9 @@ def test_analytics_summary_contains_expected_monthly_revenue_loss(
 
 
 def test_analytics_summary_expected_monthly_revenue_loss_is_zero_when_empty(
-    client: TestClient,
+    authenticated_client: TestClient,
 ) -> None:
-    response = client.get("/api/v1/analytics/summary")
+    response = authenticated_client.get("/api/v1/analytics/summary")
 
     assert response.status_code == 200
 
@@ -320,7 +320,7 @@ def test_analytics_summary_expected_monthly_revenue_loss_is_zero_when_empty(
 
 
 def test_analytics_summary_contains_annual_revenue_metrics(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
 ) -> None:
     payload = customer_payload.copy()
@@ -329,7 +329,7 @@ def test_analytics_summary_contains_annual_revenue_metrics(
     payload["MonthlyCharges"] = 100.0
     payload["TotalCharges"] = 1000.0
 
-    prediction_response = client.post(
+    prediction_response = authenticated_client.post(
         "/api/v1/predict",
         json=payload,
     )
@@ -344,7 +344,7 @@ def test_analytics_summary_contains_annual_revenue_metrics(
 
     expected_monthly_loss = payload["MonthlyCharges"] * churn_probability
 
-    summary_response = client.get("/api/v1/analytics/summary")
+    summary_response = authenticated_client.get("/api/v1/analytics/summary")
 
     assert summary_response.status_code == 200
 
@@ -359,9 +359,9 @@ def test_analytics_summary_contains_annual_revenue_metrics(
 
 
 def test_analytics_summary_annual_metrics_are_zero_when_empty(
-    client: TestClient,
+    authenticated_client: TestClient,
 ) -> None:
-    response = client.get("/api/v1/analytics/summary")
+    response = authenticated_client.get("/api/v1/analytics/summary")
 
     assert response.status_code == 200
 
@@ -372,7 +372,7 @@ def test_analytics_summary_annual_metrics_are_zero_when_empty(
 
 
 def test_analytics_summary_contains_retention_roi_metrics(
-    client: TestClient,
+    authenticated_client: TestClient,
     customer_payload: dict,
 ) -> None:
     payload = customer_payload.copy()
@@ -381,7 +381,7 @@ def test_analytics_summary_contains_retention_roi_metrics(
     payload["MonthlyCharges"] = 100.0
     payload["TotalCharges"] = 1000.0
 
-    prediction_response = client.post(
+    prediction_response = authenticated_client.post(
         "/api/v1/predict",
         json=payload,
     )
@@ -394,7 +394,7 @@ def test_analytics_summary_contains_retention_roi_metrics(
 
     action_id = prediction_data["retention_recommendation"]["action_id"]
 
-    in_progress_response = client.patch(
+    in_progress_response = authenticated_client.patch(
         f"/api/v1/retention-actions/{action_id}",
         json={
             "status": "in_progress",
@@ -403,7 +403,7 @@ def test_analytics_summary_contains_retention_roi_metrics(
 
     assert in_progress_response.status_code == 200
 
-    completed_response = client.patch(
+    completed_response = authenticated_client.patch(
         f"/api/v1/retention-actions/{action_id}",
         json={
             "status": "completed",
@@ -413,7 +413,7 @@ def test_analytics_summary_contains_retention_roi_metrics(
 
     assert completed_response.status_code == 200
 
-    summary_response = client.get("/api/v1/analytics/summary")
+    summary_response = authenticated_client.get("/api/v1/analytics/summary")
 
     assert summary_response.status_code == 200
 
@@ -436,9 +436,9 @@ def test_analytics_summary_contains_retention_roi_metrics(
 
 
 def test_analytics_summary_roi_metrics_are_zero_when_empty(
-    client: TestClient,
+    authenticated_client: TestClient,
 ) -> None:
-    response = client.get("/api/v1/analytics/summary")
+    response = authenticated_client.get("/api/v1/analytics/summary")
 
     assert response.status_code == 200
 

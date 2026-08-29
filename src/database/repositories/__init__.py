@@ -4,10 +4,12 @@ from src.database.repositories.prediction import PredictionRepository
 from src.database.repositories.retention_action import (
     RetentionActionRepository,
 )
+from src.database.repositories.user import UserRepository
 
 __all__ = [
     "AnalyticsRepository",
     "CustomerRepository",
     "PredictionRepository",
     "RetentionActionRepository",
+    "UserRepository",
 ]

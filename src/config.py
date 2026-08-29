@@ -21,11 +21,19 @@ class Settings(BaseSettings):
     environment: str = "development"
     log_level: str = "INFO"
 
+    # Authentication
+    jwt_secret_key: str = ""
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 15
+
+    # Database
     database_url: str = DEFAULT_DATABASE_URL
 
+    # Machine learning model
     model_path: Path = DEFAULT_MODEL_PATH
     model_metadata_path: Path = DEFAULT_MODEL_METADATA_PATH
 
+    # CORS
     cors_origins: str = "http://localhost:3000,http://localhost:5173"
 
     @property
@@ -33,7 +41,9 @@ class Settings(BaseSettings):
         """Return configured CORS origins as a normalized list."""
 
         return [
-            origin.strip() for origin in self.cors_origins.split(",") if origin.strip()
+            origin.strip()
+            for origin in self.cors_origins.split(",")
+            if origin.strip()
         ]
 
     model_config = SettingsConfigDict(
