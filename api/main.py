@@ -18,6 +18,7 @@ from api.routes.user import router as user_router
 from src.config import settings
 from src.database.initialization import initialize_database
 from src.logging_config import configure_logging
+from src.security.tokens import validate_jwt_configuration
 
 configure_logging()
 
@@ -35,6 +36,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         settings.environment,
     )
 
+    validate_jwt_configuration()
     initialize_database()
 
     yield

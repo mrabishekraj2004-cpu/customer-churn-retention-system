@@ -17,7 +17,7 @@ class TokenDecodeError(ValueError):
     """Raised when an access token cannot be securely decoded."""
 
 
-def _validate_jwt_configuration() -> None:
+def validate_jwt_configuration() -> None:
     """Ensure JWT configuration is safe before handling tokens."""
 
     if not settings.jwt_secret_key:
@@ -48,7 +48,7 @@ def create_access_token(
 ) -> str:
     """Create a signed, short-lived JWT access token."""
 
-    _validate_jwt_configuration()
+    validate_jwt_configuration()
 
     now = datetime.now(UTC)
 
@@ -74,7 +74,7 @@ def decode_access_token(
 ) -> dict[str, Any]:
     """Decode and validate a signed JWT access token."""
 
-    _validate_jwt_configuration()
+    validate_jwt_configuration()
 
     try:
         payload = jwt.decode(

@@ -12,6 +12,9 @@ services:
 
     environment:
       ENVIRONMENT: production
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-15}
       DATABASE_URL: sqlite:////app/data/customer_churn.db
       MODEL_PATH: /app/models/churn_pipeline.joblib
       MODEL_METADATA_PATH: /app/models/churn_pipeline_metadata.json
