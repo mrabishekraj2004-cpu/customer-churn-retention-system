@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from api.schemas.auth import LoginRequest, TokenResponse
 from src.database.repositories import UserRepository
 from src.database.session import get_db
+from src.security.rate_limit import enforce_login_rate_limit
 from src.services.auth_service import (
     AuthenticationService,
     InvalidCredentialsError,
@@ -28,6 +29,9 @@ def get_authentication_service(
 @router.post(
     "/login",
     response_model=TokenResponse,
+    dependencies=[
+        Depends(enforce_login_rate_limit),
+    ],
 )
 def login(
     credentials: LoginRequest,

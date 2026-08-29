@@ -176,3 +176,38 @@ def test_login_rejects_empty_password(
     )
 
     assert response.status_code == 422
+
+
+def test_login_rate_limit_rejects_sixth_attempt(
+    client: TestClient,
+) -> None:
+    login_payload = {
+        "email": "missing@example.com",
+        "password": TEST_PASSWORD,
+    }
+
+    for _ in range(5):
+        response = client.post(
+            "/api/v1/auth/login",
+            json=login_payload,
+        )
+
+        assert response.status_code == 401
+
+    response = client.post(
+        "/api/v1/auth/login",
+        json=login_payload,
+    )
+
+    assert response.status_code == 429
+    assert response.json() == {
+        "detail": "Too many login attempts."
+    }
+
+    assert "retry-after" in response.headers
+
+    retry_after = int(
+        response.headers["retry-after"]
+    )
+
+    assert 1 <= retry_after <= 60

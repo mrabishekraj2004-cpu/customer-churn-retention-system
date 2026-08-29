@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     jwt_secret_key: str = ""
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 15
+    login_rate_limit_attempts: int = 5
+    login_rate_limit_window_seconds: int = 60
 
     # Database
     database_url: str = DEFAULT_DATABASE_URL

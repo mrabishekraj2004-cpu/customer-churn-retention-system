@@ -3,6 +3,7 @@ from fastapi.testclient import TestClient
 
 from api.main import app
 from src.config import settings
+from src.security.rate_limit import RateLimitConfigurationError
 from src.security.tokens import TokenConfigurationError
 
 
@@ -67,6 +68,44 @@ def test_application_startup_rejects_invalid_token_expiration(
         TokenConfigurationError,
         match=(
             "ACCESS_TOKEN_EXPIRE_MINUTES "
+            "must be greater than zero"
+        ),
+    ), TestClient(app):
+        pass
+
+
+def test_startup_rejects_zero_login_rate_limit_attempts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        settings,
+        "login_rate_limit_attempts",
+        0,
+    )
+
+    with pytest.raises(
+        RateLimitConfigurationError,
+        match=(
+            "LOGIN_RATE_LIMIT_ATTEMPTS "
+            "must be greater than zero"
+        ),
+    ), TestClient(app):
+        pass
+
+
+def test_startup_rejects_zero_login_rate_limit_window(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        settings,
+        "login_rate_limit_window_seconds",
+        0,
+    )
+
+    with pytest.raises(
+        RateLimitConfigurationError,
+        match=(
+            "LOGIN_RATE_LIMIT_WINDOW_SECONDS "
             "must be greater than zero"
         ),
     ), TestClient(app):

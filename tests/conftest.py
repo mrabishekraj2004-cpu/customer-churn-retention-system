@@ -13,7 +13,19 @@ from src.database.models import UserRole
 from src.database.repositories import UserRepository
 from src.database.session import Base, get_db
 from src.security.password import hash_password
+from src.security.rate_limit import reset_login_rate_limit
 from src.security.tokens import create_access_token
+
+
+@pytest.fixture(autouse=True)
+def reset_test_login_rate_limit() -> Generator[None, None, None]:
+    """Prevent login rate-limit state from leaking between tests."""
+
+    reset_login_rate_limit()
+
+    yield
+
+    reset_login_rate_limit()
 
 
 @pytest.fixture(autouse=True)
@@ -36,6 +48,16 @@ def configure_test_security(
         settings,
         "access_token_expire_minutes",
         15,
+    )
+    monkeypatch.setattr(
+        settings,
+        "login_rate_limit_attempts",
+        5,
+    )
+    monkeypatch.setattr(
+        settings,
+        "login_rate_limit_window_seconds",
+        60,
     )
 
 
