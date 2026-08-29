@@ -151,3 +151,74 @@ def test_access_token_expiration_is_seconds(
     )
 
     assert service.access_token_expires_in() > 0
+
+
+def test_authenticate_missing_user_still_verifies_password(
+    db_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    service = AuthenticationService(
+        UserRepository(db_session)
+    )
+
+    verification_calls: list[
+        tuple[str, str]
+    ] = []
+
+    def fake_verify_password(
+        plain_password: str,
+        hashed_password: str,
+    ) -> bool:
+        verification_calls.append(
+            (
+                plain_password,
+                hashed_password,
+            )
+        )
+        return False
+
+    monkeypatch.setattr(
+        "src.services.auth_service.verify_password",
+        fake_verify_password,
+    )
+
+    with pytest.raises(
+        InvalidCredentialsError,
+        match="Invalid email or password",
+    ):
+        service.authenticate(
+            email="missing@example.com",
+            password=TEST_PASSWORD,
+        )
+
+    assert len(verification_calls) == 1
+    assert verification_calls[0][0] == TEST_PASSWORD
+
+
+def test_authenticate_never_accepts_missing_user(
+    db_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    service = AuthenticationService(
+        UserRepository(db_session)
+    )
+
+    def fake_verify_password(
+        plain_password: str,
+        hashed_password: str,
+    ) -> bool:
+        return True
+
+    monkeypatch.setattr(
+        "src.services.auth_service.verify_password",
+        fake_verify_password,
+    )
+
+    with pytest.raises(
+        InvalidCredentialsError,
+        match="Invalid email or password",
+    ):
+        service.authenticate(
+            email="missing@example.com",
+            password=TEST_PASSWORD,
+        )

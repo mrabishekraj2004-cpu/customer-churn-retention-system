@@ -1,8 +1,12 @@
 from src.config import settings
 from src.database.models import User
 from src.database.repositories import UserRepository
-from src.security.password import verify_password
+from src.security.password import hash_password, verify_password
 from src.security.tokens import create_access_token
+
+DUMMY_PASSWORD_HASH = hash_password(
+    "dummy-password-used-only-for-timing-equalization"
+)
 
 
 class InvalidCredentialsError(Exception):
@@ -26,15 +30,18 @@ class AuthenticationService:
     ) -> User:
         user = self.repository.get_by_email(email)
 
-        if user is None:
-            raise InvalidCredentialsError(
-                "Invalid email or password."
-            )
+        password_hash = (
+            user.password_hash
+            if user is not None
+            else DUMMY_PASSWORD_HASH
+        )
 
-        if not verify_password(
+        password_is_valid = verify_password(
             password,
-            user.password_hash,
-        ):
+            password_hash,
+        )
+
+        if user is None or not password_is_valid:
             raise InvalidCredentialsError(
                 "Invalid email or password."
             )
